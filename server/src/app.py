@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
 from database.db import connect_to_database, disconnect_from_database
-import os
 from dotenv import load_dotenv
+import os
 
 # Cargar variables de entorno según el entorno
 env = os.getenv('ENVIRONMENT', 'development')
@@ -29,11 +29,15 @@ def create_app():
     # Ruta de prueba
     @app.route('/')
     def index():
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        db_type = 'SQLite' if 'sqlite' in db_uri else 'PostgreSQL'
+        
         return {
             'message': 'Daily Planner API',
             'status': 'running',
             'version': '1.0.0',
-            'environment': env
+            'environment': env,
+            'database': db_type
         }
     
     @app.route('/health')
@@ -50,4 +54,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=app.config['DEBUG'])
+    app.run(host='0.0.0.0', port=port, debug=True)

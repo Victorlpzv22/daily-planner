@@ -12,9 +12,9 @@ def connect_to_database(app):
     if not database_url:
         raise ValueError("DATABASE_URL no está configurada en las variables de entorno")
     
-    # Psycopg 3 prefiere 'postgresql://' en lugar de 'postgres://'
+    # Ajustar URL para PostgreSQL con psycopg3
     if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        database_url = database_url.replace('postgres://', 'postgresql+psycopg://', 1)
     
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -24,7 +24,12 @@ def connect_to_database(app):
     
     with app.app_context():
         db.create_all()
-        print(f"✓ Base de datos conectada")
+        
+        # Mostrar qué base de datos estamos usando
+        if 'sqlite' in database_url:
+            print(f"✓ Conectado a SQLite: daily_planner.db")
+        else:
+            print(f"✓ Conectado a PostgreSQL")
 
 def disconnect_from_database():
     db.session.remove()
