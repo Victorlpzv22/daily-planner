@@ -1,0 +1,21 @@
+# Variables de entorno
+.env
+.env.development
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Base de datos
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
