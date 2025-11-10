@@ -1,8 +1,20 @@
-import React from 'react';
-import { FaCalendarAlt } from 'react-icons/fa';
-import '../styles/Header.css';
+import React, { useContext } from 'react';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton, 
+  Box,
+  Tooltip
+} from '@mui/material';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { ThemeContext } from '../contexts/ThemeContext';
 
 function Header() {
+  const { mode, toggleTheme } = useContext(ThemeContext);
+  
   const today = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
@@ -11,15 +23,24 @@ function Header() {
   });
 
   return (
-    <header className="header">
-      <div className="header-content">
-        <div className="header-title">
-          <FaCalendarAlt className="header-icon" />
-          <h1>Daily Planner</h1>
-        </div>
-        <p className="header-date">{today}</p>
-      </div>
-    </header>
+    <AppBar position="static" elevation={0}>
+      <Toolbar>
+        <CalendarMonthIcon sx={{ mr: 2 }} />
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="div">
+            Daily Planner
+          </Typography>
+          <Typography variant="caption" sx={{ opacity: 0.8 }}>
+            {today}
+          </Typography>
+        </Box>
+        <Tooltip title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
+          <IconButton onClick={toggleTheme} color="inherit">
+            {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+          </IconButton>
+        </Tooltip>
+      </Toolbar>
+    </AppBar>
   );
 }
 

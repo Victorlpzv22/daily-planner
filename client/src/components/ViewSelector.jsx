@@ -1,31 +1,38 @@
 import React from 'react';
-import { FaList, FaCalendarDay, FaCalendarWeek } from 'react-icons/fa';
-import '../styles/ViewSelector.css';
+import { ToggleButtonGroup, ToggleButton, useMediaQuery, useTheme } from '@mui/material';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ViewWeekIcon from '@mui/icons-material/ViewWeek';
 
 function ViewSelector({ currentView, onViewChange }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const views = [
-    { id: 'list', label: 'Lista', icon: FaList },
-    { id: 'month', label: 'Mes (Días)', icon: FaCalendarDay },
-    { id: 'week', label: 'Mes (Semanas)', icon: FaCalendarWeek },
+    { id: 'list', label: 'Lista', icon: <ViewListIcon /> },
+    { id: 'month', label: isMobile ? 'Mes' : 'Mes (Días)', icon: <CalendarMonthIcon /> },
+    { id: 'week', label: isMobile ? 'Sem.' : 'Mes (Semanas)', icon: <ViewWeekIcon /> },
   ];
 
   return (
-    <div className="view-selector">
-      {views.map(view => {
-        const Icon = view.icon;
-        return (
-          <button
-            key={view.id}
-            className={`view-btn ${currentView === view.id ? 'active' : ''}`}
-            onClick={() => onViewChange(view.id)}
-            title={view.label}
-          >
-            <Icon />
-            <span>{view.label}</span>
-          </button>
-        );
-      })}
-    </div>
+    <ToggleButtonGroup
+      value={currentView}
+      exclusive
+      onChange={(e, newView) => {
+        if (newView !== null) {
+          onViewChange(newView);
+        }
+      }}
+      color="primary"
+      size={isMobile ? 'small' : 'medium'}
+    >
+      {views.map((view) => (
+        <ToggleButton key={view.id} value={view.id}>
+          {view.icon}
+          <span style={{ marginLeft: 8 }}>{view.label}</span>
+        </ToggleButton>
+      ))}
+    </ToggleButtonGroup>
   );
 }
 

@@ -1,5 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { taskService } from './services/api';
+import { ThemeContext } from './contexts/ThemeContext';
+
+// MUI Components
+import { 
+  Box, 
+  Container, 
+  Fab, 
+  Alert, 
+  Snackbar,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+
+// Tus componentes (los actualizaremos)
 import Header from './components/Header';
 import TaskList from './components/TaskList';
 import TaskForm from './components/TaskForm';
@@ -7,9 +22,11 @@ import TaskFilter from './components/TaskFilter';
 import ViewSelector from './components/ViewSelector';
 import MonthView from './components/MonthView';
 import WeekView from './components/WeekView';
-import './styles/App.css';
 
 function App() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,15 +79,13 @@ function App() {
   };
 
   const handleDeleteTask = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar esta tarea?')) {
-      try {
-        await taskService.deleteTask(id);
-        setTasks(tasks.filter(task => task.id !== id));
-        setError(null);
-      } catch (err) {
-        setError('Error al eliminar la tarea');
-        console.error(err);
-      }
+    try {
+      await taskService.deleteTask(id);
+      setTasks(tasks.filter(task => task.id !== id));
+      setError(null);
+    } catch (err) {
+      setError('Error al eliminar la tarea');
+      console.error(err);
     }
   };
 
@@ -107,98 +122,107 @@ function App() {
   });
 
   return (
-    <div className="App">
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header />
       
-      {error && (
-        <div className="error-message">
-          {error}
-          <button onClick={() => setError(null)}>✕</button>
-        </div>
-      )}
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: 2, 
+            alignItems: isMobile ? 'stretch' : 'center',
+            justifyContent: 'space-between' 
+          }}>
+            <ViewSelector 
+              currentView={currentView}
+              onViewChange={setCurrentView}
+            />
 
-      <div className="container">
-        <div className="actions-bar">
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowForm(!showForm)}
-          >
-            {showForm ? 'Cancelar' : '+ Nueva Tarea'}
-          </button>
+            {currentView === 'list' && (
+              <TaskFilter 
+                currentFilter={filter}
+                onFilterChange={setFilter}
+                taskCounts={{
+                  all: tasks.length,
+                  pending: tasks.filter(t => !t.completada).length,
+                  completed: tasks.filter(t => t.completada).length,
+                }}
+              />
+            )}
+          </Box>
 
-          <ViewSelector 
-            currentView={currentView}
-            onViewChange={setCurrentView}
-          />
-
-          {currentView === 'list' && (
-            <TaskFilter 
-              currentFilter={filter}
-              onFilterChange={setFilter}
-              taskCounts={{
-                all: tasks.length,
-                pending: tasks.filter(t => !t.completada).length,
-                completed: tasks.filter(t => t.completada).length,
-              }}
+          {showForm && (
+            <TaskForm
+              task={editingTask}
+              onSubmit={editingTask ? 
+                (data) => handleUpdateTask(editingTask.id, data) : 
+                handleCreateTask
+              }
+              onCancel={handleCancelForm}
             />
           )}
-        </div>
 
-        {showForm && (
-          <TaskForm
-            task={editingTask}
-            onSubmit={editingTask ? 
-              (data) => handleUpdateTask(editingTask.id, data) : 
-              handleCreateTask
-            }
-            onCancel={handleCancelForm}
-          />
-        )}
-
-        {loading ? (
-          <div className="loading">Cargando tareas...</div>
-        ) : (
-          <>
-            {currentView === 'list' && (
-              <>
+          {loading ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              Cargando tareas...
+            </Box>
+          ) : (
+            <>
+              {currentView === 'list' && (
                 <TaskList
                   tasks={filteredTasks}
                   onToggle={handleToggleTask}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                 />
-                {filteredTasks.length === 0 && (
-                  <div className="empty-state">
-                    <p>No hay tareas {filter !== 'all' && filter}</p>
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => setShowForm(true)}
-                    >
-                      Crear primera tarea
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
+              )}
 
-            {currentView === 'month' && (
-              <MonthView
-                tasks={tasks}
-                onTaskClick={handleEditTask}
-                onDayClick={handleDayClick}
-              />
-            )}
+              {currentView === 'month' && (
+                <MonthView
+                  tasks={tasks}
+                  onTaskClick={handleEditTask}
+                  onDayClick={handleDayClick}
+                />
+              )}
 
-            {currentView === 'week' && (
-              <WeekView
-                tasks={tasks}
-                onTaskClick={handleEditTask}
-              />
-            )}
-          </>
-        )}
-      </div>
-    </div>
+              {currentView === 'week' && (
+                <WeekView
+                  tasks={tasks}
+                  onTaskClick={handleEditTask}
+                />
+              )}
+            </>
+          )}
+        </Box>
+      </Container>
+
+      {/* FAB para crear tarea */}
+      <Fab 
+        color="primary" 
+        aria-label="add"
+        onClick={() => setShowForm(!showForm)}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Snackbar para errores */}
+      <Snackbar 
+        open={!!error} 
+        autoHideDuration={6000} 
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

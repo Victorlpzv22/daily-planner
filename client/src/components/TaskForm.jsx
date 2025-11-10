@@ -1,152 +1,206 @@
 import React, { useState, useEffect } from 'react';
-import '../styles/TaskForm.css';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+  ToggleButtonGroup,
+  ToggleButton,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+import EventIcon from '@mui/icons-material/Event';
+import RepeatIcon from '@mui/icons-material/Repeat';
+
+dayjs.locale('es');
 
 function TaskForm({ task, onSubmit, onCancel }) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    fecha: new Date().toISOString().split('T')[0],
-    hora: '',
+    fecha: dayjs(),
+    hora: null,
     prioridad: 'media',
     tipo: 'diaria',
   });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (task) {
       setFormData({
         titulo: task.titulo || '',
         descripcion: task.descripcion || '',
-        fecha: task.fecha || '',
-        hora: task.hora ? task.hora.substring(0, 5) : '',
+        fecha: task.fecha ? dayjs(task.fecha) : dayjs(),
+        hora: task.hora ? dayjs(`2000-01-01 ${task.hora}`) : null,
         prioridad: task.prioridad || 'media',
         tipo: task.tipo || 'diaria',
       });
     }
   }, [task]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const validate = () => {
+    const newErrors = {};
+    
+    if (!formData.titulo.trim()) {
+      newErrors.titulo = 'El título es obligatorio';
+    }
+    
+    if (!formData.fecha) {
+      newErrors.fecha = 'La fecha es obligatoria';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.titulo.trim()) {
-      alert('El título es obligatorio');
-      return;
-    }
-    
-    if (!formData.fecha) {
-      alert('La fecha es obligatoria');
-      return;
-    }
+    if (!validate()) return;
 
-    const dataToSend = {
-      ...formData,
-      hora: formData.hora || null,
+    const dataToSubmit = {
+      titulo: formData.titulo,
+      descripcion: formData.descripcion,
+      fecha: formData.fecha.format('YYYY-MM-DD'),
+      hora: formData.hora ? formData.hora.format('HH:mm:ss') : null,
+      prioridad: formData.prioridad,
+      tipo: formData.tipo,
     };
 
-    onSubmit(dataToSend);
+    onSubmit(dataToSubmit);
+  };
+
+  const handleChange = (field) => (event) => {
+    setFormData({ ...formData, [field]: event.target.value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
   };
 
   return (
-    <div className="task-form-container">
-      <form className="task-form" onSubmit={handleSubmit}>
-        <h2>{task ? 'Editar Tarea' : 'Nueva Tarea'}</h2>
+    <Dialog 
+      open={true} 
+      onClose={onCancel}
+      fullScreen={fullScreen}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        {task ? 'Editar Tarea' : 'Nueva Tarea'}
+      </DialogTitle>
 
-        <div className="form-group">
-          <label htmlFor="titulo">Título *</label>
-          <input
-            type="text"
-            id="titulo"
-            name="titulo"
+      <DialogContent>
+        <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField
+            label="Título"
             value={formData.titulo}
-            onChange={handleChange}
-            placeholder="¿Qué necesitas hacer?"
+            onChange={handleChange('titulo')}
+            error={!!errors.titulo}
+            helperText={errors.titulo}
             required
+            fullWidth
+            autoFocus
           />
-        </div>
 
-        <div className="form-group">
-          <label htmlFor="descripcion">Descripción</label>
-          <textarea
-            id="descripcion"
-            name="descripcion"
+          <TextField
+            label="Descripción"
             value={formData.descripcion}
-            onChange={handleChange}
-            placeholder="Detalles adicionales..."
-            rows="3"
+            onChange={handleChange('descripcion')}
+            multiline
+            rows={3}
+            fullWidth
           />
-        </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="fecha">Fecha *</label>
-            <input
-              type="date"
-              id="fecha"
-              name="fecha"
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+            <DatePicker
+              label="Fecha"
               value={formData.fecha}
-              onChange={handleChange}
-              required
+              onChange={(newValue) => setFormData({ ...formData, fecha: newValue })}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  error: !!errors.fecha,
+                  helperText: errors.fecha,
+                },
+              }}
             />
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="hora">Hora</label>
-            <input
-              type="time"
-              id="hora"
-              name="hora"
+            <TimePicker
+              label="Hora (opcional)"
               value={formData.hora}
-              onChange={handleChange}
+              onChange={(newValue) => setFormData({ ...formData, hora: newValue })}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                },
+              }}
             />
-          </div>
-        </div>
+          </LocalizationProvider>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="prioridad">Prioridad</label>
-            <select
-              id="prioridad"
-              name="prioridad"
+          <FormControl fullWidth>
+            <InputLabel>Prioridad</InputLabel>
+            <Select
               value={formData.prioridad}
-              onChange={handleChange}
+              onChange={handleChange('prioridad')}
+              label="Prioridad"
             >
-              <option value="baja">Baja</option>
-              <option value="media">Media</option>
-              <option value="alta">Alta</option>
-            </select>
-          </div>
+              <MenuItem value="baja">Baja</MenuItem>
+              <MenuItem value="media">Media</MenuItem>
+              <MenuItem value="alta">Alta</MenuItem>
+            </Select>
+          </FormControl>
 
-          <div className="form-group">
-            <label htmlFor="tipo">Tipo</label>
-            <select
-              id="tipo"
-              name="tipo"
+          <Box>
+            <InputLabel sx={{ mb: 1 }}>Tipo de Tarea</InputLabel>
+            <ToggleButtonGroup
               value={formData.tipo}
-              onChange={handleChange}
+              exclusive
+              onChange={(e, newTipo) => {
+                if (newTipo !== null) {
+                  setFormData({ ...formData, tipo: newTipo });
+                }
+              }}
+              fullWidth
+              color="primary"
             >
-              <option value="diaria">Diaria</option>
-              <option value="semanal">Semanal</option>
-            </select>
-          </div>
-        </div>
+              <ToggleButton value="diaria">
+                <EventIcon sx={{ mr: 1 }} />
+                Diaria
+              </ToggleButton>
+              <ToggleButton value="semanal">
+                <RepeatIcon sx={{ mr: 1 }} />
+                Semanal
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        </Box>
+      </DialogContent>
 
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
-            Cancelar
-          </button>
-          <button type="submit" className="btn btn-primary">
-            {task ? 'Actualizar' : 'Crear Tarea'}
-          </button>
-        </div>
-      </form>
-    </div>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onCancel} color="inherit">
+          Cancelar
+        </Button>
+        <Button onClick={handleSubmit} variant="contained" color="primary">
+          {task ? 'Actualizar' : 'Crear'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

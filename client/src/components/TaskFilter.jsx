@@ -1,26 +1,47 @@
 import React from 'react';
-import '../styles/TaskFilter.css';
+import { Box, Chip } from '@mui/material';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import ListIcon from '@mui/icons-material/List';
 
 function TaskFilter({ currentFilter, onFilterChange, taskCounts }) {
   const filters = [
-    { id: 'all', label: 'Todas', count: taskCounts.all },
-    { id: 'pending', label: 'Pendientes', count: taskCounts.pending },
-    { id: 'completed', label: 'Completadas', count: taskCounts.completed },
+    {
+      id: 'all',
+      label: 'Todas',
+      icon: <ListIcon />,
+      count: taskCounts.all,
+    },
+    {
+      id: 'pending',
+      label: 'Pendientes',
+      icon: <RadioButtonUncheckedIcon />,
+      count: taskCounts.pending,
+    },
+    {
+      id: 'completed',
+      label: 'Completadas',
+      icon: <CheckCircleOutlineIcon />,
+      count: taskCounts.completed,
+    },
   ];
 
   return (
-    <div className="task-filter">
-      {filters.map(filter => (
-        <button
+    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      {filters.map((filter) => (
+        <Chip
           key={filter.id}
-          className={`filter-btn ${currentFilter === filter.id ? 'active' : ''}`}
+          icon={filter.icon}
+          label={`${filter.label} (${filter.count})`}
           onClick={() => onFilterChange(filter.id)}
-        >
-          {filter.label}
-          <span className="filter-count">{filter.count}</span>
-        </button>
+          color={currentFilter === filter.id ? 'primary' : 'default'}
+          variant={currentFilter === filter.id ? 'filled' : 'outlined'}
+          sx={{
+            fontWeight: currentFilter === filter.id ? 600 : 400,
+          }}
+        />
       ))}
-    </div>
+    </Box>
   );
 }
 

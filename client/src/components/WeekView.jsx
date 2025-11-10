@@ -1,103 +1,129 @@
 import React, { useState } from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, getWeek } from 'date-fns';
+import { 
+  Box, 
+  Paper, 
+  Typography, 
+  IconButton,
+  Chip,
+  Divider,
+  useTheme,
+} from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  addDays, 
+  addMonths, 
+  subMonths,
+  isSameWeek,
+} from 'date-fns';
 import { es } from 'date-fns/locale';
-import '../styles/WeekView.css';
 
 function WeekView({ tasks, onTaskClick }) {
+  const theme = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const renderHeader = () => {
     return (
-      <div className="calendar-header">
-        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="nav-btn">
-          <FaChevronLeft />
-        </button>
-        <h2>{format(currentMonth, 'MMMM yyyy', { locale: es })}</h2>
-        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="nav-btn">
-          <FaChevronRight />
-        </button>
-      </div>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        mb: 3,
+      }}>
+        <IconButton onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+          <ChevronLeftIcon />
+        </IconButton>
+        <Typography variant="h5" sx={{ fontWeight: 500 }}>
+          {format(currentMonth, 'MMMM yyyy', { locale: es })}
+        </Typography>
+        <IconButton onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+          <ChevronRightIcon />
+        </IconButton>
+      </Box>
     );
   };
 
-  const getWeeksInMonth = () => {
+  const renderWeeks = () => {
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
     const weeks = [];
-    let currentWeekStart = startDate;
+    let week = startDate;
 
-    while (currentWeekStart <= endDate) {
-      const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
-      weeks.push({
-        start: currentWeekStart,
-        end: weekEnd < monthEnd ? weekEnd : monthEnd,
-        number: getWeek(currentWeekStart, { weekStartsOn: 1, locale: es })
+    while (week <= endDate) {
+      const weekStart = week;
+      const weekEnd = endOfWeek(week, { weekStartsOn: 1 });
+
+      const weekTasks = tasks.filter(task => {
+        const taskDate = new Date(task.fecha);
+        return task.tipo === 'semanal' && isSameWeek(taskDate, weekStart, { weekStartsOn: 1 });
       });
-      currentWeekStart = addDays(weekEnd, 1);
+
+      weeks.push(
+        <Paper 
+          key={week.toString()} 
+          elevation={2}
+          sx={{ 
+            p: 2,
+            transition: 'all 0.2s',
+            '&:hover': {
+              elevation: 4,
+            },
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
+            Semana del {format(weekStart, 'd MMM', { locale: es })} - {format(weekEnd, 'd MMM', { locale: es })}
+          </Typography>
+          
+          <Divider sx={{ my: 1 }} />
+          
+          {weekTasks.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+              {weekTasks.map(task => (
+                <Chip
+                  key={task.id}
+                  label={task.titulo}
+                  color={
+                    task.prioridad === 'alta' ? 'error' :
+                    task.prioridad === 'media' ? 'warning' : 'success'
+                  }
+                  onClick={() => onTaskClick(task)}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    textDecoration: task.completada ? 'line-through' : 'none',
+                    opacity: task.completada ? 0.6 : 1,
+                  }}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontStyle: 'italic' }}>
+              No hay tareas semanales
+            </Typography>
+          )}
+        </Paper>
+      );
+
+      week = addDays(weekEnd, 1);
     }
 
     return weeks;
   };
 
-  const renderWeeks = () => {
-    const weeks = getWeeksInMonth();
-    const weeklyTasks = tasks.filter(task => task.tipo === 'semanal');
-
-    return weeks.map((week, index) => {
-      const tasksInWeek = weeklyTasks.filter(task => {
-        const taskDate = new Date(task.fecha);
-        return taskDate >= week.start && taskDate <= week.end;
-      });
-
-      return (
-        <div key={index} className="week-row">
-          <div className="week-info">
-            <div className="week-number">Semana {week.number}</div>
-            <div className="week-dates">
-              {format(week.start, 'd MMM', { locale: es })} - {format(week.end, 'd MMM', { locale: es })}
-            </div>
-          </div>
-          <div className="week-tasks">
-            {tasksInWeek.length === 0 ? (
-              <div className="no-tasks">Sin tareas semanales</div>
-            ) : (
-              tasksInWeek.map(task => (
-                <div
-                  key={task.id}
-                  className={`week-task-card priority-${task.prioridad} ${task.completada ? 'completed' : ''}`}
-                  onClick={() => onTaskClick(task)}
-                >
-                  <div className="task-card-header">
-                    <h4>{task.titulo}</h4>
-                    <span className={`badge badge-${task.prioridad}`}>{task.prioridad}</span>
-                  </div>
-                  {task.descripcion && (
-                    <p className="task-card-description">{task.descripcion}</p>
-                  )}
-                  <div className="task-card-meta">
-                    {task.hora && <span>🕐 {task.hora.substring(0, 5)}</span>}
-                    <span>📅 {format(new Date(task.fecha), 'dd/MM/yyyy')}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      );
-    });
-  };
-
   return (
-    <div className="week-view">
+    <Box>
       {renderHeader()}
-      <div className="weeks-container">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {renderWeeks()}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
