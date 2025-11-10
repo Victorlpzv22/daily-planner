@@ -22,9 +22,9 @@ def create_app():
     # Conectar a la base de datos
     connect_to_database(app)
     
-    # Registrar blueprints (rutas) aquí cuando las creemos
-    # from routes.task_routes import task_bp
-    # app.register_blueprint(task_bp, url_prefix='/api')
+    # Registrar blueprints (rutas)
+    from routes.task_routes import task_bp
+    app.register_blueprint(task_bp, url_prefix='/api/tasks')
     
     # Ruta de prueba
     @app.route('/')

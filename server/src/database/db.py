@@ -23,6 +23,9 @@ def connect_to_database(app):
     db.init_app(app)
     
     with app.app_context():
+        # ⚠️ IMPORTANTE: Importar modelos ANTES de create_all()
+        from models.task import Task
+        
         db.create_all()
         
         # Mostrar qué base de datos estamos usando

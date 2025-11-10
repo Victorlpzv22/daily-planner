@@ -19,6 +19,7 @@ class Task(db.Model):
         return f'<Task {self.id}: {self.titulo}>'
     
     def to_dict(self):
+        """Convertir objeto Task a diccionario"""
         return {
             'id': self.id,
             'titulo': self.titulo,
@@ -31,3 +32,6 @@ class Task(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+        
+    def __repr__(self):
+        return f'<Task {self.id}: {self.titulo}>'
