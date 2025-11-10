@@ -1,53 +1,113 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { taskService } from './services/api';
-import { ThemeContext } from './contexts/ThemeContext';
-
-// MUI Components
-import { 
-  Box, 
-  Container, 
-  Fab, 
-  Alert, 
-  Snackbar,
+import React, { useState, useEffect } from 'react';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  ToggleButtonGroup,
+  ToggleButton,
+  Fab,
   useMediaQuery,
-  useTheme
+  CircularProgress,
+  Alert,
+  IconButton,
+  createTheme,
+  ThemeProvider,
+  CssBaseline,
+  Avatar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-
-// Tus componentes (los actualizaremos)
-import Header from './components/Header';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import ViewWeekIcon from '@mui/icons-material/ViewWeek';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import TaskList from './components/TaskList';
 import TaskForm from './components/TaskForm';
-import TaskFilter from './components/TaskFilter';
-import ViewSelector from './components/ViewSelector';
 import MonthView from './components/MonthView';
 import WeekView from './components/WeekView';
+import TaskDetailDialog from './components/TaskDetailDialog';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const API_URL = 'http://localhost:5000/api/tasks';
 
 function App() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: darkMode ? 'dark' : 'light',
+          primary: {
+            main: '#1976d2',
+          },
+          secondary: {
+            main: '#dc004e',
+          },
+        },
+      }),
+    [darkMode]
+  );
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  const [filter, setFilter] = useState('all');
-  const [currentView, setCurrentView] = useState('list');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [currentTask, setCurrentTask] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('viewMode');
+    return saved || 'month';
+  });
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  // Guardar preferencias
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
 
   useEffect(() => {
-    loadTasks();
+    localStorage.setItem('viewMode', viewMode);
+  }, [viewMode]);
+
+  // Cargar tareas al montar el componente
+  useEffect(() => {
+    fetchTasks();
   }, []);
 
-  const loadTasks = async () => {
+  const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await taskService.getAllTasks();
-      setTasks(response.data);
       setError(null);
+      const response = await axios.get(API_URL);
+      
+      console.log('📦 Respuesta del servidor:', response.data);
+      
+      const tasksData = response.data.tasks || response.data || [];
+      
+      if (Array.isArray(tasksData)) {
+        setTasks(tasksData);
+        console.log('✅ Tareas cargadas:', tasksData.length);
+      } else {
+        console.error('❌ La respuesta no es un array:', tasksData);
+        setTasks([]);
+        setError('Formato de datos inválido del servidor');
+      }
     } catch (err) {
-      setError('Error al cargar las tareas');
-      console.error(err);
+      console.error('❌ Error al cargar tareas:', err);
+      if (err.code === 'ERR_NETWORK') {
+        setError('No se puede conectar al servidor. Verifica que esté corriendo en http://localhost:5000');
+      } else {
+        setError('Error al cargar las tareas: ' + (err.response?.data?.error || err.message));
+      }
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -55,174 +115,281 @@ function App() {
 
   const handleCreateTask = async (taskData) => {
     try {
-      const response = await taskService.createTask(taskData);
-      setTasks([response.data.task, ...tasks]);
-      setShowForm(false);
-      setError(null);
+      console.log('📤 Enviando tarea:', taskData);
+      await axios.post(API_URL, taskData);
+      await fetchTasks();
+      setIsFormOpen(false);
+      setCurrentTask(null);
     } catch (err) {
-      setError('Error al crear la tarea');
-      console.error(err);
+      console.error('❌ Error al crear tarea:', err);
+      if (err.code === 'ERR_NETWORK') {
+        alert('Error de conexión. Verifica que el servidor esté corriendo.');
+      } else {
+        alert('Error al crear la tarea: ' + (err.response?.data?.error || err.message));
+      }
     }
   };
 
-  const handleUpdateTask = async (id, taskData) => {
+  const handleUpdateTask = async (taskData) => {
     try {
-      const response = await taskService.updateTask(id, taskData);
-      setTasks(tasks.map(task => task.id === id ? response.data.task : task));
-      setEditingTask(null);
-      setShowForm(false);
-      setError(null);
+      console.log('📝 Actualizando tarea:', taskData);
+      await axios.put(`${API_URL}/${currentTask.id}`, taskData);
+      await fetchTasks();
+      setIsFormOpen(false);
+      setCurrentTask(null);
     } catch (err) {
-      setError('Error al actualizar la tarea');
-      console.error(err);
+      console.error('❌ Error al actualizar tarea:', err);
+      alert('Error al actualizar la tarea: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  const handleDeleteTask = async (id) => {
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta tarea?')) {
+      return;
+    }
+
     try {
-      await taskService.deleteTask(id);
-      setTasks(tasks.filter(task => task.id !== id));
-      setError(null);
+      await axios.delete(`${API_URL}/${taskId}`);
+      await fetchTasks();
+      setSelectedTask(null);
     } catch (err) {
-      setError('Error al eliminar la tarea');
-      console.error(err);
+      console.error('❌ Error al eliminar tarea:', err);
+      alert('Error al eliminar la tarea: ' + (err.response?.data?.error || err.message));
     }
   };
 
-  const handleToggleTask = async (id) => {
+  const handleToggleTask = async (taskId) => {
     try {
-      const response = await taskService.toggleTask(id);
-      setTasks(tasks.map(task => task.id === id ? response.data.task : task));
-      setError(null);
+      await axios.patch(`${API_URL}/${taskId}/toggle`);
+      await fetchTasks();
     } catch (err) {
-      setError('Error al actualizar la tarea');
-      console.error(err);
+      console.error('❌ Error al cambiar estado de tarea:', err);
+      alert('Error al cambiar el estado: ' + (err.response?.data?.error || err.message));
     }
   };
 
   const handleEditTask = (task) => {
-    setEditingTask(task);
-    setShowForm(true);
+    setCurrentTask(task);
+    setIsFormOpen(true);
+    setSelectedTask(null);
   };
 
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setEditingTask(null);
+  const handleNewTask = () => {
+    setCurrentTask(null);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setCurrentTask(null);
+  };
+
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
   };
 
   const handleDayClick = (date) => {
-    setEditingTask(null);
-    setShowForm(true);
+    console.log('📅 Día seleccionado:', date);
   };
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'pending') return !task.completada;
-    if (filter === 'completed') return task.completada;
-    return true;
-  });
+  const handleViewChange = (event, newView) => {
+    if (newView !== null) {
+      setViewMode(newView);
+    }
+  };
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  // Obtener día actual
+  const today = new Date();
+  const dayNumber = format(today, 'd');
+  const dayName = format(today, 'EEEE', { locale: es });
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Header />
-      
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: 2, 
-            alignItems: isMobile ? 'stretch' : 'center',
-            justifyContent: 'space-between' 
-          }}>
-            <ViewSelector 
-              currentView={currentView}
-              onViewChange={setCurrentView}
-            />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          py: 3,
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {/* Icono del día actual */}
+                <Avatar
+                  sx={{
+                    width: isMobile ? 48 : 56,
+                    height: isMobile ? 48 : 56,
+                    bgcolor: 'primary.main',
+                    fontSize: isMobile ? '1.5rem' : '1.75rem',
+                    fontWeight: 700,
+                    boxShadow: 3,
+                  }}
+                  title={`Hoy es ${dayName}`}
+                >
+                  {dayNumber}
+                </Avatar>
+                
+                <Box>
+                  <Typography
+                    variant={isMobile ? 'h5' : 'h4'}
+                    component="h1"
+                    sx={{ fontWeight: 600, lineHeight: 1.2 }}
+                  >
+                    Daily Planner
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ textTransform: 'capitalize' }}
+                  >
+                    {format(today, "EEEE, d 'de' MMMM", { locale: es })}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* Botón modo oscuro */}
+              <IconButton onClick={toggleDarkMode} color="inherit">
+                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+              </IconButton>
+            </Box>
 
-            {currentView === 'list' && (
-              <TaskFilter 
-                currentFilter={filter}
-                onFilterChange={setFilter}
-                taskCounts={{
-                  all: tasks.length,
-                  pending: tasks.filter(t => !t.completada).length,
-                  completed: tasks.filter(t => t.completada).length,
-                }}
-              />
-            )}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2,
+              }}
+            >
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={handleViewChange}
+                size={isMobile ? 'small' : 'medium'}
+              >
+                <ToggleButton value="month">
+                  <CalendarMonthIcon sx={{ mr: 0.5 }} />
+                  {!isMobile && 'Mes'}
+                </ToggleButton>
+                <ToggleButton value="week">
+                  <ViewWeekIcon sx={{ mr: 0.5 }} />
+                  {!isMobile && 'Semana'}
+                </ToggleButton>
+                <ToggleButton value="list">
+                  <ViewListIcon sx={{ mr: 0.5 }} />
+                  {!isMobile && 'Lista'}
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {!isMobile && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleNewTask}
+                  size="large"
+                >
+                  Nueva Tarea
+                </Button>
+              )}
+            </Box>
           </Box>
 
-          {showForm && (
-            <TaskForm
-              task={editingTask}
-              onSubmit={editingTask ? 
-                (data) => handleUpdateTask(editingTask.id, data) : 
-                handleCreateTask
-              }
-              onCancel={handleCancelForm}
-            />
-          )}
-
           {loading ? (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              Cargando tareas...
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
             </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
           ) : (
             <>
-              {currentView === 'list' && (
+              {viewMode === 'month' && (
+                <MonthView
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                  onDayClick={handleDayClick}
+                />
+              )}
+              
+              {viewMode === 'week' && (
+                <WeekView
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                  onDayClick={handleDayClick}
+                />
+              )}
+              
+              {viewMode === 'list' && (
                 <TaskList
-                  tasks={filteredTasks}
+                  tasks={tasks}
                   onToggle={handleToggleTask}
                   onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                 />
               )}
 
-              {currentView === 'month' && (
-                <MonthView
-                  tasks={tasks}
-                  onTaskClick={handleEditTask}
-                  onDayClick={handleDayClick}
-                />
-              )}
-
-              {currentView === 'week' && (
-                <WeekView
-                  tasks={tasks}
-                  onTaskClick={handleEditTask}
-                />
+              {tasks.length === 0 && !loading && (
+                <Box
+                  sx={{
+                    textAlign: 'center',
+                    py: 8,
+                    color: 'text.secondary',
+                  }}
+                >
+                  <Typography variant="h6" gutterBottom>
+                    No hay tareas todavía
+                  </Typography>
+                  <Typography variant="body2">
+                    Haz clic en el botón + para crear tu primera tarea
+                  </Typography>
+                </Box>
               )}
             </>
           )}
-        </Box>
-      </Container>
 
-      {/* FAB para crear tarea */}
-      <Fab 
-        color="primary" 
-        aria-label="add"
-        onClick={() => setShowForm(!showForm)}
-        sx={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-        }}
-      >
-        <AddIcon />
-      </Fab>
+          {isMobile && (
+            <Fab
+              color="primary"
+              sx={{
+                position: 'fixed',
+                bottom: 16,
+                right: 16,
+              }}
+              onClick={handleNewTask}
+            >
+              <AddIcon />
+            </Fab>
+          )}
 
-      {/* Snackbar para errores */}
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
-        onClose={() => setError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
-    </Box>
+          {isFormOpen && (
+            <TaskForm
+              task={currentTask}
+              onSubmit={currentTask ? handleUpdateTask : handleCreateTask}
+              onCancel={handleCloseForm}
+            />
+          )}
+
+          {selectedTask && (
+            <TaskDetailDialog
+              task={selectedTask}
+              onClose={() => setSelectedTask(null)}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              onToggle={handleToggleTask}
+            />
+          )}
+        </Container>
+      </Box>
+    </ThemeProvider>
   );
 }
 

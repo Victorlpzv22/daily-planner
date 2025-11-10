@@ -12,6 +12,7 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import RepeatIcon from '@mui/icons-material/Repeat';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import { 
   format, 
   startOfMonth, 
@@ -20,10 +21,13 @@ import {
   endOfWeek, 
   addDays, 
   isSameMonth, 
-  isSameDay, 
+  isSameDay,
   addMonths, 
   subMonths,
-  isSameWeek,
+  differenceInDays,
+  max,
+  min,
+  startOfDay,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -31,7 +35,6 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
   const theme = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Función para truncar texto
   const truncateText = (text, maxLength = 15) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
@@ -79,6 +82,24 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
     );
   };
 
+  const calculateTaskPosition = (taskStart, taskEnd, weekStart, weekEnd) => {
+    const normalizedTaskStart = startOfDay(taskStart);
+    const normalizedTaskEnd = startOfDay(taskEnd);
+    const normalizedWeekStart = startOfDay(weekStart);
+    const normalizedWeekEnd = startOfDay(weekEnd);
+    
+    const visibleStart = max([normalizedTaskStart, normalizedWeekStart]);
+    const visibleEnd = min([normalizedTaskEnd, normalizedWeekEnd]);
+    
+    const startDayIndex = differenceInDays(visibleStart, normalizedWeekStart);
+    const spanDays = differenceInDays(visibleEnd, visibleStart) + 1;
+    
+    return {
+      startColumn: startDayIndex + 1,
+      spanColumns: spanDays,
+    };
+  };
+
   const renderCells = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
@@ -92,22 +113,35 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
       const weekStart = day;
       const weekEnd = endOfWeek(day, { weekStartsOn: 1 });
 
-      // Obtener tareas semanales de esta semana
-      const weeklyTasks = tasks.filter(task => {
-        if (task.tipo !== 'semanal') return false;
-        const taskDate = new Date(task.fecha);
-        return isSameWeek(taskDate, weekStart, { weekStartsOn: 1 });
+      const multiDayTasks = tasks.filter(task => {
+        const taskStart = new Date(task.fecha_inicio);
+        const taskEnd = new Date(task.fecha_fin);
+        
+        if (task.tipo === 'diaria') return false;
+        if (task.fecha_inicio === task.fecha_fin) return false;
+        
+        return (taskStart <= weekEnd && taskEnd >= weekStart);
       });
 
-      // Generar celdas de días
       const days = [];
       for (let i = 0; i < 7; i++) {
         const cloneDay = addDays(weekStart, i);
         
-        // Solo tareas diarias para este día específico
-        const dailyTasks = tasks.filter(task => 
-          task.tipo === 'diaria' && isSameDay(new Date(task.fecha), cloneDay)
-        );
+        const dailyTasks = tasks.filter(task => {
+          const taskStart = new Date(task.fecha_inicio);
+          const normalizedCloneDay = startOfDay(cloneDay);
+          const normalizedTaskStart = startOfDay(taskStart);
+          
+          if (task.tipo === 'diaria') {
+            return isSameDay(normalizedCloneDay, normalizedTaskStart);
+          }
+          
+          if (task.fecha_inicio === task.fecha_fin) {
+            return isSameDay(normalizedCloneDay, normalizedTaskStart);
+          }
+          
+          return false;
+        });
         
         const isToday = isSameDay(cloneDay, new Date());
         const isCurrentMonth = isSameMonth(cloneDay, monthStart);
@@ -163,10 +197,6 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                   <Chip
                     label={truncateText(task.titulo, 15)}
                     size="small"
-                    color={
-                      task.prioridad === 'alta' ? 'error' :
-                      task.prioridad === 'media' ? 'warning' : 'success'
-                    }
                     variant="filled"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -175,9 +205,15 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                     sx={{
                       fontSize: '0.65rem',
                       height: 20,
+                      bgcolor: task.color || '#1976d2',
+                      color: '#fff',
                       textDecoration: task.completada ? 'line-through' : 'none',
                       opacity: task.completada ? 0.6 : 1,
                       maxWidth: '100%',
+                      '&:hover': {
+                        bgcolor: task.color || '#1976d2',
+                        filter: 'brightness(0.9)',
+                      },
                       '& .MuiChip-label': {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -214,97 +250,141 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
             mb: 2,
           }}
         >
-          {/* Grid de días de la semana */}
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: 1,
-          }}>
+          <Box 
+            id="week-grid"
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: 1,
+            }}
+          >
             {days}
           </Box>
 
-          {/* Tareas semanales que abarcan toda la fila */}
-          {weeklyTasks.length > 0 && (
-            <Box sx={{ 
-              mt: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0.5,
-            }}>
-              {weeklyTasks.slice(0, 2).map(task => (
-                <Tooltip 
-                  key={task.id} 
-                  title={`${task.titulo} - Tarea semanal`}
-                  arrow
-                  placement="top"
-                >
-                  <Paper
-                    elevation={2}
-                    sx={{
-                      px: 2,
-                      py: 0.5,
-                      cursor: 'pointer',
-                      bgcolor: task.prioridad === 'alta' ? 'error.light' :
-                               task.prioridad === 'media' ? 'warning.light' : 'success.light',
-                      color: task.prioridad === 'alta' ? 'error.dark' :
-                             task.prioridad === 'media' ? 'warning.dark' : 'success.dark',
-                      borderLeft: '4px solid',
-                      borderLeftColor: task.prioridad === 'alta' ? 'error.main' :
-                                      task.prioridad === 'media' ? 'warning.main' : 'success.main',
-                      transition: 'all 0.2s',
-                      textDecoration: task.completada ? 'line-through' : 'none',
-                      opacity: task.completada ? 0.6 : 1,
-                      '&:hover': {
-                        elevation: 4,
-                        transform: 'translateX(4px)',
-                      },
-                    }}
-                    onClick={() => onTaskClick(task)}
+          {multiDayTasks.length > 0 && (
+            <Box 
+              sx={{ 
+                mt: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0.5,
+              }}
+            >
+              {multiDayTasks.slice(0, 3).map((task) => {
+                const taskStart = new Date(task.fecha_inicio);
+                const taskEnd = new Date(task.fecha_fin);
+                const { startColumn, spanColumns } = calculateTaskPosition(
+                  taskStart, 
+                  taskEnd, 
+                  weekStart, 
+                  weekEnd
+                );
+
+                const taskIcon = task.tipo === 'semanal' ? <RepeatIcon /> : <DateRangeIcon />;
+                const taskStartFormatted = format(taskStart, 'd MMM', { locale: es });
+                const taskEndFormatted = format(taskEnd, 'd MMM', { locale: es });
+                
+                return (
+                  <Tooltip 
+                    key={task.id} 
+                    title={`${task.titulo} (${taskStartFormatted} - ${taskEndFormatted})`}
+                    arrow
+                    placement="top"
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <RepeatIcon sx={{ fontSize: '0.9rem' }} />
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          fontWeight: 500,
-                          fontSize: '0.875rem',
-                          flex: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
+                    <Paper
+                      elevation={2}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(7, 1fr)',
+                        gap: '4px',
+                        '& > div': {
+                          gridColumn: `${startColumn} / span ${spanColumns}`,
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          px: 1.5,
+                          py: 0.5,
+                          cursor: 'pointer',
+                          bgcolor: task.color || '#1976d2',
+                          color: '#fff',
+                          borderLeft: '4px solid',
+                          borderLeftColor: task.color || '#1976d2',
+                          filter: task.completada ? 'brightness(0.7)' : 'none',
+                          borderRadius: 1,
+                          transition: 'all 0.2s',
+                          textDecoration: task.completada ? 'line-through' : 'none',
+                          opacity: task.completada ? 0.6 : 1,
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: theme.shadows[4],
+                            filter: 'brightness(1.1)',
+                          },
                         }}
+                        onClick={() => onTaskClick(task)}
                       >
-                        {task.titulo}
-                      </Typography>
-                      {task.hora && (
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            opacity: 0.8,
-                            fontSize: '0.75rem',
-                          }}
-                        >
-                          {task.hora.substring(0, 5)}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Paper>
-                </Tooltip>
-              ))}
-              {weeklyTasks.length > 2 && (
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{
-                    fontSize: '0.65rem',
-                    textAlign: 'center',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  +{weeklyTasks.length - 2} tareas semanales más
-                </Typography>
-              )}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {React.cloneElement(taskIcon, { sx: { fontSize: '0.9rem' } })}
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 500,
+                              fontSize: '0.8rem',
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {task.titulo}
+                          </Typography>
+                          {spanColumns >= 3 && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                opacity: 0.8,
+                                fontSize: '0.65rem',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {taskStartFormatted} - {taskEndFormatted}
+                            </Typography>
+                          )}
+                          {task.hora && spanColumns >= 2 && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                opacity: 0.8,
+                                fontSize: '0.7rem',
+                              }}
+                            >
+                              {task.hora.substring(0, 5)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Tooltip>
+                );
+              })}
             </Box>
+          )}
+
+          {multiDayTasks.length > 3 && (
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{
+                fontSize: '0.65rem',
+                textAlign: 'center',
+                fontStyle: 'italic',
+                display: 'block',
+                mt: 0.5,
+              }}
+            >
+              +{multiDayTasks.length - 3} tareas más
+            </Typography>
           )}
         </Box>
       );

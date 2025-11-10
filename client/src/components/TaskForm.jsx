@@ -15,6 +15,9 @@ import {
   ToggleButton,
   useMediaQuery,
   useTheme,
+  Alert,
+  Typography,
+  Divider,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -22,8 +25,28 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/es';
 import EventIcon from '@mui/icons-material/Event';
 import RepeatIcon from '@mui/icons-material/Repeat';
+import DateRangeIcon from '@mui/icons-material/DateRange';
+import PaletteIcon from '@mui/icons-material/Palette';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 dayjs.locale('es');
+
+// Colores predefinidos
+const PRESET_COLORS = [
+  { name: 'Rojo', value: '#d32f2f' },
+  { name: 'Rosa', value: '#c2185b' },
+  { name: 'Púrpura', value: '#7b1fa2' },
+  { name: 'Índigo', value: '#303f9f' },
+  { name: 'Azul', value: '#1976d2' },
+  { name: 'Cian', value: '#0097a7' },
+  { name: 'Verde', value: '#388e3c' },
+  { name: 'Lima', value: '#689f38' },
+  { name: 'Naranja', value: '#f57c00' },
+  { name: 'Marrón', value: '#5d4037' },
+  { name: 'Gris', value: '#616161' },
+  { name: 'Azul gris', value: '#455a64' },
+];
 
 function TaskForm({ task, onSubmit, onCancel }) {
   const theme = useTheme();
@@ -32,10 +55,12 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    fecha: dayjs(),
+    fecha_inicio: dayjs(),
+    fecha_fin: dayjs(),
     hora: null,
     prioridad: 'media',
     tipo: 'diaria',
+    color: '#1976d2',
   });
 
   const [errors, setErrors] = useState({});
@@ -45,13 +70,42 @@ function TaskForm({ task, onSubmit, onCancel }) {
       setFormData({
         titulo: task.titulo || '',
         descripcion: task.descripcion || '',
-        fecha: task.fecha ? dayjs(task.fecha) : dayjs(),
+        fecha_inicio: task.fecha_inicio ? dayjs(task.fecha_inicio) : dayjs(),
+        fecha_fin: task.fecha_fin ? dayjs(task.fecha_fin) : dayjs(),
         hora: task.hora ? dayjs(`2000-01-01 ${task.hora}`) : null,
         prioridad: task.prioridad || 'media',
         tipo: task.tipo || 'diaria',
+        color: task.color || '#1976d2',
       });
     }
   }, [task]);
+
+  const handleTipoChange = (event, newTipo) => {
+    if (newTipo === null) return;
+    
+    let newFechaFin = formData.fecha_inicio;
+    
+    if (newTipo === 'diaria') {
+      newFechaFin = formData.fecha_inicio;
+      setFormData({
+        ...formData,
+        tipo: newTipo,
+        fecha_fin: newFechaFin,
+      });
+    } else if (newTipo === 'semanal') {
+      const fechaInicioDate = formData.fecha_inicio.toDate();
+      const weekStart = startOfWeek(fechaInicioDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(fechaInicioDate, { weekStartsOn: 1 });
+      setFormData({
+        ...formData,
+        tipo: newTipo,
+        fecha_inicio: dayjs(weekStart),
+        fecha_fin: dayjs(weekEnd),
+      });
+    } else {
+      setFormData({ ...formData, tipo: newTipo, fecha_fin: newFechaFin });
+    }
+  };
 
   const validate = () => {
     const newErrors = {};
@@ -60,8 +114,17 @@ function TaskForm({ task, onSubmit, onCancel }) {
       newErrors.titulo = 'El título es obligatorio';
     }
     
-    if (!formData.fecha) {
-      newErrors.fecha = 'La fecha es obligatoria';
+    if (!formData.fecha_inicio) {
+      newErrors.fecha_inicio = 'La fecha de inicio es obligatoria';
+    }
+    
+    if (!formData.fecha_fin) {
+      newErrors.fecha_fin = 'La fecha de fin es obligatoria';
+    }
+    
+    if (formData.fecha_fin && formData.fecha_inicio && 
+        formData.fecha_fin.isBefore(formData.fecha_inicio)) {
+      newErrors.fecha_fin = 'La fecha de fin debe ser posterior o igual a la de inicio';
     }
     
     setErrors(newErrors);
@@ -76,10 +139,12 @@ function TaskForm({ task, onSubmit, onCancel }) {
     const dataToSubmit = {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
-      fecha: formData.fecha.format('YYYY-MM-DD'),
+      fecha_inicio: formData.fecha_inicio.format('YYYY-MM-DD'),
+      fecha_fin: formData.fecha_fin.format('YYYY-MM-DD'),
       hora: formData.hora ? formData.hora.format('HH:mm:ss') : null,
       prioridad: formData.prioridad,
       tipo: formData.tipo,
+      color: formData.color,
     };
 
     onSubmit(dataToSubmit);
@@ -92,6 +157,27 @@ function TaskForm({ task, onSubmit, onCancel }) {
     }
   };
 
+  const handleFechaInicioChange = (newValue) => {
+    if (formData.tipo === 'diaria') {
+      setFormData({ ...formData, fecha_inicio: newValue, fecha_fin: newValue });
+    } else if (formData.tipo === 'semanal') {
+      const fechaDate = newValue.toDate();
+      const weekStart = startOfWeek(fechaDate, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(fechaDate, { weekStartsOn: 1 });
+      setFormData({
+        ...formData,
+        fecha_inicio: dayjs(weekStart),
+        fecha_fin: dayjs(weekEnd),
+      });
+    } else {
+      setFormData({ ...formData, fecha_inicio: newValue });
+    }
+  };
+
+  const handleColorSelect = (color) => {
+    setFormData({ ...formData, color });
+  };
+
   return (
     <Dialog 
       open={true} 
@@ -100,7 +186,15 @@ function TaskForm({ task, onSubmit, onCancel }) {
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box 
+          sx={{ 
+            width: 8, 
+            height: 32, 
+            bgcolor: formData.color, 
+            borderRadius: 1 
+          }} 
+        />
         {task ? 'Editar Tarea' : 'Nueva Tarea'}
       </DialogTitle>
 
@@ -126,17 +220,78 @@ function TaskForm({ task, onSubmit, onCancel }) {
             fullWidth
           />
 
+          <Box>
+            <InputLabel sx={{ mb: 1, fontSize: '0.875rem', color: 'text.secondary' }}>
+              Tipo de Tarea
+            </InputLabel>
+            <ToggleButtonGroup
+              value={formData.tipo}
+              exclusive
+              onChange={handleTipoChange}
+              fullWidth
+              color="primary"
+            >
+              <ToggleButton value="diaria">
+                <EventIcon sx={{ mr: 1 }} />
+                Diaria
+              </ToggleButton>
+              <ToggleButton value="semanal">
+                <RepeatIcon sx={{ mr: 1 }} />
+                Semanal
+              </ToggleButton>
+              <ToggleButton value="personalizado">
+                <DateRangeIcon sx={{ mr: 1 }} />
+                Personalizado
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {formData.tipo === 'diaria' && (
+            <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+              La tarea se realizará en un solo día
+            </Alert>
+          )}
+
+          {formData.tipo === 'semanal' && (
+            <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+              La tarea abarcará desde el lunes hasta el domingo de la semana seleccionada
+            </Alert>
+          )}
+
+          {formData.tipo === 'personalizado' && (
+            <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+              Selecciona las fechas de inicio y fin manualmente
+            </Alert>
+          )}
+
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
             <DatePicker
-              label="Fecha"
-              value={formData.fecha}
-              onChange={(newValue) => setFormData({ ...formData, fecha: newValue })}
+              label="Fecha de Inicio"
+              value={formData.fecha_inicio}
+              onChange={handleFechaInicioChange}
               slotProps={{
                 textField: {
                   fullWidth: true,
                   required: true,
-                  error: !!errors.fecha,
-                  helperText: errors.fecha,
+                  error: !!errors.fecha_inicio,
+                  helperText: errors.fecha_inicio,
+                },
+              }}
+            />
+
+            <DatePicker
+              label="Fecha de Fin"
+              value={formData.fecha_fin}
+              onChange={(newValue) => setFormData({ ...formData, fecha_fin: newValue })}
+              disabled={formData.tipo === 'diaria' || formData.tipo === 'semanal'}
+              minDate={formData.fecha_inicio}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  required: true,
+                  error: !!errors.fecha_fin,
+                  helperText: errors.fecha_fin || 
+                    (formData.tipo !== 'personalizado' ? 'Automático según el tipo' : 'Debe ser igual o posterior a la fecha de inicio'),
                 },
               }}
             />
@@ -166,37 +321,176 @@ function TaskForm({ task, onSubmit, onCancel }) {
             </Select>
           </FormControl>
 
+          <Divider sx={{ my: 1 }} />
+
+          {/* Selector de Color Mejorado */}
           <Box>
-            <InputLabel sx={{ mb: 1 }}>Tipo de Tarea</InputLabel>
-            <ToggleButtonGroup
-              value={formData.tipo}
-              exclusive
-              onChange={(e, newTipo) => {
-                if (newTipo !== null) {
-                  setFormData({ ...formData, tipo: newTipo });
-                }
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <PaletteIcon color="action" />
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                Color de la tarea
+              </Typography>
+            </Box>
+
+            {/* Vista previa del color seleccionado */}
+            <Box 
+              sx={{ 
+                p: 2, 
+                mb: 2,
+                borderRadius: 2,
+                bgcolor: formData.color,
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: 1,
               }}
-              fullWidth
-              color="primary"
             >
-              <ToggleButton value="diaria">
-                <EventIcon sx={{ mr: 1 }} />
-                Diaria
-              </ToggleButton>
-              <ToggleButton value="semanal">
-                <RepeatIcon sx={{ mr: 1 }} />
-                Semanal
-              </ToggleButton>
-            </ToggleButtonGroup>
+              <Box>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Color seleccionado
+                </Typography>
+                <Typography variant="h6" fontWeight={600}>
+                  {formData.titulo || 'Vista previa'}
+                </Typography>
+              </Box>
+              <CheckCircleIcon sx={{ fontSize: 32 }} />
+            </Box>
+
+            {/* Paleta de colores predefinidos */}
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Colores predefinidos
+            </Typography>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(6, 1fr)', 
+              gap: 1,
+              mb: 2,
+            }}>
+              {PRESET_COLORS.map((colorOption) => (
+                <Box
+                  key={colorOption.value}
+                  onClick={() => handleColorSelect(colorOption.value)}
+                  sx={{
+                    width: '100%',
+                    paddingTop: '100%',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    borderRadius: 1.5,
+                    bgcolor: colorOption.value,
+                    border: '3px solid',
+                    borderColor: formData.color === colorOption.value 
+                      ? 'primary.main' 
+                      : 'transparent',
+                    transition: 'all 0.2s',
+                    boxShadow: formData.color === colorOption.value ? 3 : 1,
+                    '&:hover': {
+                      transform: 'scale(1.15)',
+                      boxShadow: 3,
+                      zIndex: 10,
+                    },
+                    '&::after': formData.color === colorOption.value ? {
+                      content: '"✓"',
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      color: '#fff',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    } : {},
+                  }}
+                  title={colorOption.name}
+                />
+              ))}
+            </Box>
+            
+            {/* Input de color personalizado */}
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              O elige un color personalizado
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: 60,
+                  height: 56,
+                  borderRadius: 1,
+                  border: '2px solid',
+                  borderColor: 'divider',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                <input
+                  type="color"
+                  value={formData.color}
+                  onChange={(e) => handleColorSelect(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+              </Box>
+              <TextField
+                label="Código hexadecimal"
+                value={formData.color}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.startsWith('#') && value.length <= 7) {
+                    handleColorSelect(value);
+                  }
+                }}
+                size="small"
+                fullWidth
+                placeholder="#1976d2"
+                helperText="Formato: #RRGGBB"
+                InputProps={{
+                  startAdornment: (
+                    <Box 
+                      sx={{ 
+                        width: 24, 
+                        height: 24, 
+                        borderRadius: 0.5,
+                        bgcolor: formData.color,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        mr: 1,
+                      }} 
+                    />
+                  ),
+                }}
+              />
+            </Box>
           </Box>
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
         <Button onClick={onCancel} color="inherit">
           Cancelar
         </Button>
-        <Button onClick={handleSubmit} variant="contained" color="primary">
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained" 
+          sx={{ 
+            bgcolor: formData.color,
+            minWidth: 120,
+            '&:hover': {
+              bgcolor: formData.color,
+              filter: 'brightness(0.85)',
+            }
+          }}
+        >
           {task ? 'Actualizar' : 'Crear'}
         </Button>
       </DialogActions>

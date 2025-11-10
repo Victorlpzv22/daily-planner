@@ -6,6 +6,11 @@ load_dotenv()
 
 db = SQLAlchemy()
 
+def init_db():
+    """Inicializar la base de datos y crear tablas si no existen"""
+    db.create_all()
+    print("✓ Conectado a SQLite: daily_planner.db")
+    
 def connect_to_database(app):
     database_url = os.getenv('DATABASE_URL')
     

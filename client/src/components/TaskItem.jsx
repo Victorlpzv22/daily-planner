@@ -14,33 +14,47 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import RepeatIcon from '@mui/icons-material/Repeat';
+import EventIcon from '@mui/icons-material/Event';
 
 function TaskItem({ task, onToggle, onEdit, onDelete }) {
-  const getPriorityColor = (prioridad) => {
-    switch (prioridad) {
-      case 'alta':
-        return 'error';
-      case 'media':
-        return 'warning';
-      case 'baja':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-ES', {
       day: '2-digit',
       month: 'short',
+      year: 'numeric',
     });
   };
 
   const formatTime = (timeString) => {
     if (!timeString) return null;
     return timeString.substring(0, 5);
+  };
+
+  const getDateRangeText = () => {
+    const inicio = formatDate(task.fecha_inicio);
+    const fin = formatDate(task.fecha_fin);
+    
+    if (task.fecha_inicio === task.fecha_fin || task.tipo === 'diaria') {
+      return inicio;
+    }
+    
+    return `${inicio} - ${fin}`;
+  };
+
+  const getTaskIcon = () => {
+    switch (task.tipo) {
+      case 'diaria':
+        return <EventIcon />;
+      case 'semanal':
+        return <RepeatIcon />;
+      case 'personalizado':
+        return <DateRangeIcon />;
+      default:
+        return <CalendarTodayIcon />;
+    }
   };
 
   return (
@@ -55,7 +69,7 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
           transform: 'translateY(-2px)',
         },
         borderLeft: `4px solid`,
-        borderLeftColor: task.completada ? 'grey.400' : `${getPriorityColor(task.prioridad)}.main`,
+        borderLeftColor: task.color || '#1976d2',
       }}
     >
       <CardContent sx={{ pb: 1 }}>
@@ -64,7 +78,13 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
             checked={task.completada}
             onChange={() => onToggle(task.id)}
             color="primary"
-            sx={{ mt: -1 }}
+            sx={{ 
+              mt: -1,
+              color: task.color || '#1976d2',
+              '&.Mui-checked': {
+                color: task.color || '#1976d2',
+              }
+            }}
           />
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography
@@ -94,11 +114,14 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
               <Chip
-                icon={<CalendarTodayIcon />}
-                label={formatDate(task.fecha)}
+                icon={getTaskIcon()}
+                label={getDateRangeText()}
                 size="small"
                 variant="outlined"
-                color={getPriorityColor(task.prioridad)}
+                sx={{
+                  borderColor: task.color || '#1976d2',
+                  color: task.color || '#1976d2',
+                }}
               />
 
               {task.hora && (
@@ -110,20 +133,25 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
                 />
               )}
 
-              {task.tipo === 'semanal' && (
+              {task.tipo !== 'diaria' && (
                 <Chip
-                  icon={<RepeatIcon />}
-                  label="Semanal"
+                  label={task.tipo.toUpperCase()}
                   size="small"
-                  color="secondary"
                   variant="outlined"
+                  sx={{
+                    borderColor: task.color || '#1976d2',
+                    color: task.color || '#1976d2',
+                  }}
                 />
               )}
 
               <Chip
                 label={task.prioridad.toUpperCase()}
                 size="small"
-                color={getPriorityColor(task.prioridad)}
+                sx={{
+                  bgcolor: task.color || '#1976d2',
+                  color: '#fff',
+                }}
               />
             </Box>
           </Box>

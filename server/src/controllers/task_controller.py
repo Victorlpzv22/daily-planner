@@ -1,8 +1,8 @@
-from flask import jsonify, request
-from database.db import db
+from flask import request, jsonify
 from models.task import Task
-from datetime import datetime, date, time
+from database.db import db
 from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime, date, time
 
 class TaskController:
     
@@ -10,19 +10,21 @@ class TaskController:
     def get_all_tasks():
         """Obtener todas las tareas"""
         try:
-            tasks = Task.query.order_by(Task.fecha.desc(), Task.hora.desc()).all()
-            return jsonify([task.to_dict() for task in tasks]), 200
+            tasks = Task.query.order_by(Task.fecha_inicio.desc()).all()
+            return jsonify({
+                'tasks': [task.to_dict() for task in tasks]
+            }), 200
         except SQLAlchemyError as e:
             return jsonify({'error': 'Error al obtener tareas', 'details': str(e)}), 500
     
     @staticmethod
-    def get_task_by_id(task_id):
-        """Obtener una tarea específica"""
+    def get_task(task_id):
+        """Obtener una tarea por ID"""
         try:
             task = Task.query.get(task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
-            return jsonify(task.to_dict()), 200
+            return jsonify({'task': task.to_dict()}), 200
         except SQLAlchemyError as e:
             return jsonify({'error': 'Error al obtener tarea', 'details': str(e)}), 500
     
@@ -39,45 +41,67 @@ class TaskController:
             if 'titulo' not in data or not data['titulo'].strip():
                 return jsonify({'error': 'El título es obligatorio'}), 400
             
-            if 'fecha' not in data:
-                return jsonify({'error': 'La fecha es obligatoria'}), 400
+            if 'fecha_inicio' not in data:
+                return jsonify({'error': 'La fecha de inicio es obligatoria'}), 400
             
-            # Parsear fecha
+            if 'fecha_fin' not in data:
+                return jsonify({'error': 'La fecha de fin es obligatoria'}), 400
+            
+            # Parsear fecha_inicio
             try:
-                fecha_obj = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
+                fecha_inicio_obj = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
             except ValueError:
-                return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
+                return jsonify({'error': 'Formato de fecha_inicio inválido. Use YYYY-MM-DD'}), 400
+            
+            # Parsear fecha_fin
+            try:
+                fecha_fin_obj = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'error': 'Formato de fecha_fin inválido. Use YYYY-MM-DD'}), 400
+            
+            # Validar que fecha_fin >= fecha_inicio
+            if fecha_fin_obj < fecha_inicio_obj:
+                return jsonify({'error': 'La fecha de fin debe ser posterior o igual a la fecha de inicio'}), 400
             
             # Parsear hora (opcional)
             hora_obj = None
-            if 'hora' in data and data['hora']:
+            if data.get('hora'):
                 try:
                     hora_obj = datetime.strptime(data['hora'], '%H:%M:%S').time()
                 except ValueError:
                     try:
                         hora_obj = datetime.strptime(data['hora'], '%H:%M').time()
                     except ValueError:
-                        return jsonify({'error': 'Formato de hora inválido. Use HH:MM o HH:MM:SS'}), 400
+                        return jsonify({'error': 'Formato de hora inválido. Use HH:MM:SS o HH:MM'}), 400
             
             # Validar prioridad
             prioridad = data.get('prioridad', 'media').lower()
-            if prioridad not in ['alta', 'media', 'baja']:
-                return jsonify({'error': 'Prioridad inválida. Use: alta, media o baja'}), 400
+            if prioridad not in ['baja', 'media', 'alta']:
+                return jsonify({'error': 'Prioridad inválida. Debe ser: baja, media o alta'}), 400
             
             # Validar tipo
             tipo = data.get('tipo', 'diaria').lower()
-            if tipo not in ['diaria', 'semanal']:
-                return jsonify({'error': 'Tipo inválido. Use: diaria o semanal'}), 400
+            if tipo not in ['diaria', 'semanal', 'personalizado']:
+                return jsonify({'error': 'Tipo inválido. Debe ser: diaria, semanal o personalizado'}), 400
+            
+            # Validar color (opcional)
+            color = data.get('color', '#1976d2')
+            if color and not color.startswith('#'):
+                return jsonify({'error': 'Formato de color inválido. Use formato hexadecimal (#RRGGBB)'}), 400
+            if color and len(color) not in [4, 7]:  # #RGB o #RRGGBB
+                return jsonify({'error': 'Formato de color inválido. Use #RGB o #RRGGBB'}), 400
             
             # Crear tarea
             new_task = Task(
                 titulo=data['titulo'].strip(),
                 descripcion=data.get('descripcion', '').strip() if data.get('descripcion') else None,
-                fecha=fecha_obj,
+                fecha_inicio=fecha_inicio_obj,
+                fecha_fin=fecha_fin_obj,
                 hora=hora_obj,
                 completada=data.get('completada', False),
                 prioridad=prioridad,
-                tipo=tipo
+                tipo=tipo,
+                color=color
             )
             
             db.session.add(new_task)
@@ -104,7 +128,7 @@ class TaskController:
             if not data:
                 return jsonify({'error': 'No se enviaron datos'}), 400
             
-            # Actualizar campos si están presentes
+            # Actualizar campos
             if 'titulo' in data:
                 if not data['titulo'].strip():
                     return jsonify({'error': 'El título no puede estar vacío'}), 400
@@ -113,11 +137,21 @@ class TaskController:
             if 'descripcion' in data:
                 task.descripcion = data['descripcion'].strip() if data['descripcion'] else None
             
-            if 'fecha' in data:
+            if 'fecha_inicio' in data:
                 try:
-                    task.fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
+                    task.fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d').date()
                 except ValueError:
-                    return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
+                    return jsonify({'error': 'Formato de fecha_inicio inválido'}), 400
+            
+            if 'fecha_fin' in data:
+                try:
+                    task.fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({'error': 'Formato de fecha_fin inválido'}), 400
+            
+            # Validar que fecha_fin >= fecha_inicio
+            if task.fecha_fin < task.fecha_inicio:
+                return jsonify({'error': 'La fecha de fin debe ser posterior o igual a la fecha de inicio'}), 400
             
             if 'hora' in data:
                 if data['hora']:
@@ -136,15 +170,22 @@ class TaskController:
             
             if 'prioridad' in data:
                 prioridad = data['prioridad'].lower()
-                if prioridad not in ['alta', 'media', 'baja']:
+                if prioridad not in ['baja', 'media', 'alta']:
                     return jsonify({'error': 'Prioridad inválida'}), 400
                 task.prioridad = prioridad
             
             if 'tipo' in data:
                 tipo = data['tipo'].lower()
-                if tipo not in ['diaria', 'semanal']:
+                if tipo not in ['diaria', 'semanal', 'personalizado']:
                     return jsonify({'error': 'Tipo inválido'}), 400
                 task.tipo = tipo
+            
+            if 'color' in data:
+                if data['color'] and not data['color'].startswith('#'):
+                    return jsonify({'error': 'Formato de color inválido'}), 400
+                if data['color'] and len(data['color']) not in [4, 7]:
+                    return jsonify({'error': 'Formato de color inválido'}), 400
+                task.color = data['color']
             
             task.updated_at = datetime.utcnow()
             db.session.commit()
@@ -176,8 +217,8 @@ class TaskController:
             return jsonify({'error': 'Error al eliminar tarea', 'details': str(e)}), 500
     
     @staticmethod
-    def toggle_task_completion(task_id):
-        """Marcar/desmarcar tarea como completada"""
+    def toggle_task(task_id):
+        """Alternar el estado completada de una tarea"""
         try:
             task = Task.query.get(task_id)
             if not task:
@@ -188,31 +229,10 @@ class TaskController:
             db.session.commit()
             
             return jsonify({
-                'message': f'Tarea marcada como {"completada" if task.completada else "pendiente"}',
+                'message': 'Estado de tarea actualizado',
                 'task': task.to_dict()
             }), 200
             
         except SQLAlchemyError as e:
             db.session.rollback()
             return jsonify({'error': 'Error al actualizar tarea', 'details': str(e)}), 500
-    
-    @staticmethod
-    def get_tasks_by_date(fecha_str):
-        """Obtener tareas de una fecha específica"""
-        try:
-            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
-            tasks = Task.query.filter_by(fecha=fecha).order_by(Task.hora).all()
-            return jsonify([task.to_dict() for task in tasks]), 200
-        except ValueError:
-            return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
-        except SQLAlchemyError as e:
-            return jsonify({'error': 'Error al obtener tareas', 'details': str(e)}), 500
-    
-    @staticmethod
-    def get_pending_tasks():
-        """Obtener tareas pendientes"""
-        try:
-            tasks = Task.query.filter_by(completada=False).order_by(Task.fecha, Task.hora).all()
-            return jsonify([task.to_dict() for task in tasks]), 200
-        except SQLAlchemyError as e:
-            return jsonify({'error': 'Error al obtener tareas', 'details': str(e)}), 500
