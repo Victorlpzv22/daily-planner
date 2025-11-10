@@ -1,388 +1,377 @@
-# Daily Planner - Backend API
+# 🖥️ Daily Planner - Backend (API REST)
 
-API REST desarrollada con Flask para gestionar tareas de la aplicación Daily Planner.
+Backend en Flask para la aplicación Daily Planner.
 
-## 📋 Tabla de Contenidos
-
-- [Tecnologías](#tecnologías)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Estructura del Proyecto](#estructura-del-proyecto)
-- [API Endpoints](#api-endpoints)
-- [Modelos de Datos](#modelos-de-datos)
-- [Base de Datos](#base-de-datos)
-- [Desarrollo](#desarrollo)
-- [Testing](#testing)
+---
 
 ## 🛠️ Tecnologías
 
-- **Python**: 3.13
-- **Flask**: 3.0.0 - Framework web
-- **Flask-SQLAlchemy**: 3.1.1 - ORM para base de datos
-- **psycopg**: 3.1.0+ - Driver PostgreSQL
-- **python-dotenv**: 1.0.0 - Gestión de variables de entorno
-- **Flask-CORS**: 4.0.0 - Manejo de CORS
-- **PostgreSQL**: 15 - Base de datos relacional
+- **Python 3.10+**
+- **Flask 3.0.0** - Framework web
+- **Flask-CORS 4.0.0** - Manejo de CORS
+- **SQLAlchemy 2.0.23** - ORM
+- **SQLite** - Base de datos
 
-## 📦 Instalación
+---
 
-### Prerrequisitos
-
-- Python 3.8 o superior
-- Docker y Docker Compose
-- pip (gestor de paquetes Python)
-
-### Pasos
-
-1. **Crear entorno virtual:**
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-```
-
-2. **Instalar dependencias:**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Configurar variables de entorno:**
-```bash
-cp .env.example .env.development
-```
-
-Edita `.env.development`:
-```bash
-ENVIRONMENT=development
-SECRET_KEY=tu-clave-secreta-aqui
-DATABASE_URL=postgresql+psycopg://daily_user:daily_pass@localhost:5432/daily_planner
-FLASK_DEBUG=True
-PORT=5000
-```
-
-4. **Levantar PostgreSQL con Docker:**
-```bash
-docker-compose up -d
-```
-
-5. **Verificar que PostgreSQL está corriendo:**
-```bash
-docker-compose ps
-```
-
-6. **Ejecutar el servidor:**
-```bash
-python src/app.py
-```
-
-El servidor estará disponible en `http://localhost:5000`
-
-## ⚙️ Configuración
-
-### Variables de Entorno
-
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `ENVIRONMENT` | Entorno de ejecución | `development` / `production` |
-| `SECRET_KEY` | Clave secreta de Flask | `your-secret-key-here` |
-| `DATABASE_URL` | URL de conexión a PostgreSQL | `postgresql+psycopg://user:pass@host:port/db` |
-| `FLASK_DEBUG` | Modo debug de Flask | `True` / `False` |
-| `PORT` | Puerto del servidor | `5000` |
-
-### Archivos de Configuración
-
-- `.env.development` - Configuración para desarrollo local
-- `.env.production` - Configuración para producción
-- `.env.example` - Plantilla de variables de entorno
-
-**⚠️ IMPORTANTE:** Nunca subas archivos `.env.*` a Git. Ya están incluidos en `.gitignore`.
-
-## 📁 Estructura del Proyecto
+## 📁 Estructura
 
 ```
 server/
 ├── src/
-│   ├── __init__.py
-│   ├── app.py                    # Aplicación Flask principal
-│   ├── database/
-│   │   ├── __init__.py
-│   │   └── db.py                 # Configuración de la base de datos
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── task.py               # Modelo Task
-│   ├── controllers/              # (Por implementar)
-│   │   ├── __init__.py
-│   │   └── task_controller.py
-│   └── routes/                   # (Por implementar)
-│       ├── __init__.py
-│       └── task_routes.py
-├── tests/                        # Tests unitarios
-│   ├── __init__.py
-│   └── test_tasks.py
-├── venv/                         # Entorno virtual (no subir a Git)
-├── .env.development              # Variables de entorno dev (no subir)
-├── .env.production               # Variables de entorno prod (no subir)
-├── .env.example                  # Plantilla de variables (SÍ subir)
-├── .gitignore                    # Archivos ignorados por Git
-├── docker-compose.yml            # Configuración de PostgreSQL
-├── requirements.txt              # Dependencias Python
-└── README.md                     # Este archivo
+│   ├── app.py           # Aplicación principal Flask
+│   ├── models.py        # Modelos SQLAlchemy
+│   └── routes/
+│       └── tasks.py     # Rutas de la API
+├── venv/                # Entorno virtual
+├── daily_planner.db     # Base de datos SQLite (generada automáticamente)
+├── requirements.txt     # Dependencias
+└── README.md            # Este archivo
 ```
 
-## 🌐 API Endpoints
+---
 
-### Base URL
+## 🚀 Instalación
+
+### 1. Crear entorno virtual
+
+```bash
+cd server
+python -m venv venv
 ```
-http://localhost:5000/api
+
+### 2. Activar entorno virtual
+
+**Linux/Mac:**
+```bash
+source venv/bin/activate
 ```
 
-### Endpoints Implementados
+**Windows:**
+```bash
+venv\Scripts\activate
+```
 
-#### Healthcheck
+### 3. Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Iniciar servidor
+
+```bash
+python src/app.py
+```
+
+El servidor estará disponible en: **http://localhost:5000**
+
+---
+
+## 📡 API Endpoints
+
+### Base URL: `http://localhost:5000/api`
+
+### 📋 Tareas (Tasks)
+
+#### Obtener todas las tareas
 ```http
-GET /health
+GET /tasks/
 ```
+
 **Respuesta:**
 ```json
-{
-  "status": "healthy"
-}
+[
+  {
+    "id": 1,
+    "titulo": "Reunión con equipo",
+    "descripcion": "Revisar avances del proyecto",
+    "fecha": "2025-11-10",
+    "hora": "10:00:00",
+    "completada": false,
+    "prioridad": "alta",
+    "tipo": "diaria"
+  }
+]
 ```
 
-#### Información de la API
+---
+
+#### Obtener tarea por ID
 ```http
-GET /
-```
-**Respuesta:**
-```json
-{
-  "message": "Daily Planner API",
-  "status": "running",
-  "version": "1.0.0",
-  "environment": "development"
-}
+GET /tasks/<id>
 ```
 
-### Endpoints de Tareas (Por Implementar)
-
-#### Listar todas las tareas
+**Ejemplo:**
 ```http
-GET /api/tasks
+GET /tasks/1
 ```
 
-#### Obtener una tarea específica
-```http
-GET /api/tasks/:id
-```
+---
 
-#### Crear una nueva tarea
+#### Crear nueva tarea
 ```http
-POST /api/tasks
+POST /tasks/
 Content-Type: application/json
+```
 
+**Body:**
+```json
 {
-  "titulo": "Tarea de ejemplo",
-  "descripcion": "Descripción detallada",
+  "titulo": "Nueva tarea",
+  "descripcion": "Descripción opcional",
   "fecha": "2025-11-10",
   "hora": "14:30:00",
-  "prioridad": "alta",
+  "prioridad": "media",
   "tipo": "diaria"
 }
 ```
 
-#### Actualizar una tarea
-```http
-PUT /api/tasks/:id
-Content-Type: application/json
+**Respuesta:**
+```json
+{
+  "message": "Tarea creada exitosamente",
+  "task": { ... }
+}
+```
 
+---
+
+#### Actualizar tarea
+```http
+PUT /tasks/<id>
+Content-Type: application/json
+```
+
+**Body:**
+```json
 {
   "titulo": "Tarea actualizada",
   "completada": true
 }
 ```
 
-#### Eliminar una tarea
+---
+
+#### Eliminar tarea
 ```http
-DELETE /api/tasks/:id
+DELETE /tasks/<id>
 ```
 
-## 📊 Modelos de Datos
-
-### Task (Tarea)
-
-```python
-class Task(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(200), nullable=False, index=True)
-    descripcion = db.Column(db.Text, nullable=True)
-    fecha = db.Column(db.Date, nullable=False, index=True)
-    hora = db.Column(db.Time, nullable=True)
-    completada = db.Column(db.Boolean, default=False, index=True)
-    prioridad = db.Column(db.String(20), default='media')  # alta, media, baja
-    tipo = db.Column(db.String(20), default='diaria')      # diaria, semanal
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+**Respuesta:**
+```json
+{
+  "message": "Tarea eliminada exitosamente"
+}
 ```
-
-#### Campos
-
-| Campo | Tipo | Descripción | Requerido | Por Defecto |
-|-------|------|-------------|-----------|-------------|
-| `id` | Integer | Identificador único | Sí (auto) | - |
-| `titulo` | String(200) | Título de la tarea | Sí | - |
-| `descripcion` | Text | Descripción detallada | No | null |
-| `fecha` | Date | Fecha de la tarea | Sí | - |
-| `hora` | Time | Hora específica | No | null |
-| `completada` | Boolean | Si está completada | No | false |
-| `prioridad` | String(20) | Nivel de prioridad | No | 'media' |
-| `tipo` | String(20) | Tipo de tarea | No | 'diaria' |
-| `created_at` | DateTime | Fecha de creación | No | now() |
-| `updated_at` | DateTime | Última actualización | No | now() |
-
-#### Valores Permitidos
-
-- **prioridad**: `alta`, `media`, `baja`
-- **tipo**: `diaria`, `semanal`
-
-## 🗄️ Base de Datos
-
-### PostgreSQL con Docker
-
-El proyecto usa PostgreSQL 15 ejecutándose en un contenedor Docker.
-
-#### Configuración (docker-compose.yml)
-
-```yaml
-services:
-  db:
-    image: postgres:15
-    container_name: daily-planner-db
-    environment:
-      POSTGRES_USER: daily_user
-      POSTGRES_PASSWORD: daily_pass
-      POSTGRES_DB: daily_planner
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-```
-
-#### Comandos Útiles
-
-```bash
-# Levantar base de datos
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f db
-
-# Parar base de datos (datos persisten)
-docker-compose down
-
-# Parar y eliminar datos (⚠️ CUIDADO)
-docker-compose down -v
-
-# Conectarse a PostgreSQL
-docker-compose exec db psql -U daily_user -d daily_planner
-
-# Backup de la base de datos
-docker-compose exec db pg_dump -U daily_user daily_planner > backup.sql
-
-# Restaurar desde backup
-docker-compose exec -T db psql -U daily_user daily_planner < backup.sql
-```
-
-### Persistencia de Datos
-
-Los datos se guardan en un **volumen de Docker** (`postgres_data`), por lo que:
-- ✅ Persisten al reiniciar el contenedor
-- ✅ Persisten al reiniciar el sistema
-- ❌ Se pierden solo si ejecutas `docker-compose down -v`
-
-## 💻 Desarrollo
-
-### Ejecutar en modo desarrollo
-
-```bash
-# Activar entorno virtual
-source venv/bin/activate
-
-# Levantar PostgreSQL
-docker-compose up -d
-
-# Ejecutar servidor
-python src/app.py
-```
-
-El servidor se recargará automáticamente al detectar cambios (modo debug).
-
-### Ejecutar en modo producción
-
-```bash
-ENVIRONMENT=production python src/app.py
-```
-
-### Estructura de una Feature
-
-1. Crear modelo en `models/`
-2. Crear controlador en `controllers/`
-3. Crear rutas en `routes/`
-4. Registrar blueprint en `app.py`
-5. Crear tests en `tests/`
-
-## 🧪 Testing
-
-```bash
-# Instalar pytest
-pip install pytest pytest-flask
-
-# Ejecutar tests
-pytest tests/
-
-# Con coverage
-pytest --cov=src tests/
-```
-
-## 🐛 Troubleshooting
-
-### Error: "No module named 'psycopg2'"
-
-**Solución:** Asegúrate de usar `postgresql+psycopg://` en la DATABASE_URL, no `postgresql://`
-
-### Error: "Connection refused to localhost:5432"
-
-**Solución:** 
-```bash
-# Verificar que PostgreSQL está corriendo
-docker-compose ps
-
-# Si no está corriendo, levantarlo
-docker-compose up -d
-```
-
-### Error: "DATABASE_URL no está configurada"
-
-**Solución:** Verifica que existe `.env.development` con la variable DATABASE_URL
-
-## 📚 Recursos
-
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-
-## 🚀 Roadmap
-
-- [x] Configuración inicial del proyecto
-- [x] Modelo Task
-- [x] Conexión con PostgreSQL
-- [ ] CRUD completo de tareas
-- [ ] Filtros y búsqueda
-- [ ] Autenticación JWT
-- [ ] Tests unitarios
-- [ ] Documentación con Swagger
-- [ ] Deploy a producción
 
 ---
 
-Desarrollado con ❤️ por Victor
+#### Cambiar estado de tarea (toggle)
+```http
+PATCH /tasks/<id>/toggle
+```
+
+**Respuesta:**
+```json
+{
+  "message": "Estado de tarea actualizado",
+  "task": { ... }
+}
+```
+
+---
+
+#### Obtener tareas pendientes
+```http
+GET /tasks/pending
+```
+
+**Respuesta:** Lista de tareas con `completada = false`
+
+---
+
+#### Obtener tareas por fecha
+```http
+GET /tasks/date/<fecha>
+```
+
+**Ejemplo:**
+```http
+GET /tasks/date/2025-11-10
+```
+
+---
+
+## 🗄️ Modelo de Datos
+
+### Task (Tarea)
+
+| Campo | Tipo | Descripción | Requerido |
+|-------|------|-------------|-----------|
+| id | Integer | ID único (auto-generado) | ✅ |
+| titulo | String(200) | Título de la tarea | ✅ |
+| descripcion | Text | Descripción detallada | ❌ |
+| fecha | Date | Fecha de la tarea | ✅ |
+| hora | Time | Hora específica | ❌ |
+| completada | Boolean | Estado (default: false) | ✅ |
+| prioridad | String(10) | alta, media, baja (default: media) | ✅ |
+| tipo | String(10) | diaria, semanal (default: diaria) | ✅ |
+
+---
+
+## ⚙️ Configuración
+
+### Variables de Entorno (Opcional)
+
+Crea un archivo `.env` en el directorio `server/`:
+
+```env
+FLASK_APP=src/app.py
+FLASK_ENV=development
+DATABASE_URL=sqlite:///daily_planner.db
+SECRET_KEY=tu-clave-secreta-aqui
+```
+
+---
+
+## 🔒 CORS
+
+CORS está habilitado para todas las rutas por defecto:
+
+```python
+CORS(app)
+```
+
+Para restringir orígenes específicos:
+
+```python
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:3000"]
+    }
+})
+```
+
+---
+
+## 🗃️ Base de Datos
+
+### SQLite
+
+- **Ubicación:** `server/daily_planner.db`
+- **Creación:** Automática al iniciar el servidor
+- **Migraciones:** Se crean tablas automáticamente con `db.create_all()`
+
+### Resetear Base de Datos
+
+```bash
+# Detener el servidor
+# Eliminar la base de datos
+rm daily_planner.db
+
+# Reiniciar el servidor (se creará nueva BD)
+python src/app.py
+```
+
+---
+
+## 🐛 Debugging
+
+### Modo Debug
+
+El servidor corre en modo debug por defecto:
+
+```python
+app.run(debug=True, host='0.0.0.0', port=5000)
+```
+
+### Logs
+
+Los logs se muestran en la consola:
+- Requests HTTP
+- Errores de la aplicación
+- Queries SQL (con debug activado)
+
+---
+
+## 🧪 Testing
+
+### Probar endpoints con curl
+
+```bash
+# Obtener todas las tareas
+curl http://localhost:5000/api/tasks/
+
+# Crear una tarea
+curl -X POST http://localhost:5000/api/tasks/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titulo": "Test",
+    "fecha": "2025-11-10",
+    "prioridad": "alta",
+    "tipo": "diaria"
+  }'
+
+# Actualizar tarea
+curl -X PUT http://localhost:5000/api/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"completada": true}'
+
+# Eliminar tarea
+curl -X DELETE http://localhost:5000/api/tasks/1
+```
+
+---
+
+## 📦 Dependencias
+
+Ver `requirements.txt`:
+
+```
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+```
+
+### Instalar dependencia adicional
+
+```bash
+pip install nombre-paquete
+pip freeze > requirements.txt
+```
+
+---
+
+## 🚀 Despliegue
+
+### Producción
+
+Para producción, usa un servidor WSGI como **Gunicorn**:
+
+```bash
+pip install gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 src.app:app
+```
+
+### Docker (Opcional)
+
+Ejemplo de `Dockerfile`:
+
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY src/ ./src/
+CMD ["python", "src/app.py"]
+```
+
+---
+
+## 📝 Notas
+
+- El servidor recarga automáticamente al detectar cambios (modo debug)
+- Los datos persisten en `daily_planner.db`
+- CORS está configurado para desarrollo (permite todos los orígenes)

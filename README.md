@@ -1,206 +1,227 @@
-# Daily Planner 📅
+# 📅 Daily Planner - Aplicación de Gestión de Tareas
 
-Aplicación de agenda digital con arquitectura cliente-servidor para gestionar tareas diarias y semanales.
+Aplicación web full-stack para gestionar tareas diarias y semanales con calendario interactivo.
 
-## 📋 Descripción
+## 🚀 Características
 
-Daily Planner es una aplicación completa que permite organizar y gestionar tareas con las siguientes características:
-
+### ✨ Gestión de Tareas
 - ✅ Crear, editar y eliminar tareas
-- 📅 Organización por fechas y horarios
-- 🎯 Sistema de prioridades (alta, media, baja)
-- 📊 Tareas diarias y semanales
-- ✔️ Marcar tareas como completadas
-- 🔄 Sincronización en tiempo real con base de datos
+- ✅ Marcar tareas como completadas
+- ✅ Establecer prioridades (Alta, Media, Baja)
+- ✅ Tipos de tareas: Diarias y Semanales
+- ✅ Añadir fecha, hora y descripción
+- ✅ Filtrar por estado (Todas, Pendientes, Completadas)
 
-## 🏗️ Arquitectura
+### 📊 Visualizaciones
+- **Vista Lista**: Lista tradicional de tareas con filtros
+- **Vista Calendario Mensual (Días)**: Calendario que muestra tareas por día
+  - Tareas diarias aparecen en su día específico
+  - Tareas semanales aparecen en todos los días de esa semana
+- **Vista Calendario Mensual (Semanas)**: Tareas agrupadas por semanas
 
-```
-┌─────────────┐          HTTP/REST API          ┌──────────────┐
-│   Cliente   │ ◄──────────────────────────────► │   Servidor   │
-│  (Frontend) │         JSON requests            │   (Backend)  │
-└─────────────┘                                  └───────┬──────┘
-                                                         │
-                                                         │ SQL
-                                                         ▼
-                                                  ┌──────────────┐
-                                                  │  PostgreSQL  │
-                                                  │   (Docker)   │
-                                                  └──────────────┘
-```
+### 🎨 Interfaz
+- Diseño moderno y responsivo
+- Código de colores por prioridad
+- Navegación intuitiva entre vistas
+- Indicadores visuales para tareas semanales
+- Calendario interactivo
 
-### Tecnologías Utilizadas
+---
 
-**Backend:**
-- Python 3.13
-- Flask 3.0.0 (Framework web)
-- SQLAlchemy (ORM)
-- PostgreSQL 15 (Base de datos)
-- Docker (Contenedorización)
+## 🛠️ Tecnologías
 
-**Frontend:** (En desarrollo)
-- Por definir
+### Backend
+- **Python 3.10+**
+- **Flask** - Framework web
+- **SQLAlchemy** - ORM para base de datos
+- **Flask-CORS** - Manejo de CORS
+- **SQLite** - Base de datos
 
-## 🚀 Inicio Rápido
+### Frontend
+- **React 19** - Biblioteca UI
+- **Axios** - Cliente HTTP
+- **date-fns** - Manejo de fechas
+- **React Icons** - Iconos
+- **CSS3** - Estilos personalizados
 
-### Prerrequisitos
-
-- Python 3.8 o superior
-- Docker y Docker Compose
-- Git
-
-### Instalación
-
-1. **Clonar el repositorio:**
-```bash
-git clone https://github.com/tu-usuario/daily-planner.git
-cd daily-planner
-```
-
-2. **Configurar el backend:**
-```bash
-cd server
-python -m venv venv
-source venv/bin/activate  # En Linux/Mac
-# venv\Scripts\activate   # En Windows
-pip install -r requirements.txt
-```
-
-3. **Configurar variables de entorno:**
-```bash
-cp .env.example .env.development
-# Editar .env.development si es necesario
-```
-
-4. **Levantar la base de datos:**
-```bash
-docker-compose up -d
-```
-
-5. **Ejecutar el servidor:**
-```bash
-python src/app.py
-```
-
-El servidor estará disponible en `http://localhost:5000`
+---
 
 ## 📁 Estructura del Proyecto
 
 ```
 daily-planner/
-├── server/                 # Backend (API REST)
+├── server/                 # Backend (Flask)
 │   ├── src/
-│   │   ├── app.py         # Aplicación principal Flask
-│   │   ├── database/      # Configuración de BD
-│   │   ├── models/        # Modelos de datos
-│   │   ├── controllers/   # Lógica de negocio
-│   │   └── routes/        # Endpoints de la API
-│   ├── tests/             # Tests unitarios
-│   ├── docker-compose.yml # PostgreSQL en Docker
-│   └── requirements.txt   # Dependencias Python
-├── client/                # Frontend (En desarrollo)
-└── README.md             # Este archivo
+│   │   ├── app.py         # Aplicación principal
+│   │   ├── models.py      # Modelos de datos
+│   │   └── routes/
+│   │       └── tasks.py   # Rutas API
+│   ├── venv/              # Entorno virtual Python
+│   ├── requirements.txt   # Dependencias Python
+│   └── README.md          # Documentación del servidor
+│
+├── client/                # Frontend (React)
+│   ├── public/
+│   ├── src/
+│   │   ├── components/    # Componentes React
+│   │   ├── services/      # Servicios API
+│   │   ├── styles/        # Archivos CSS
+│   │   └── App.js         # Componente principal
+│   ├── package.json       # Dependencias Node
+│   └── README.md          # Documentación del cliente
+│
+└── README.md              # Este archivo
 ```
-
-## 🔧 Desarrollo
-
-### Backend
-
-Ver documentación completa en [server/README.md](server/README.md)
-
-### Variables de Entorno
-
-El proyecto usa diferentes archivos de configuración:
-
-- `.env.development` - Desarrollo local
-- `.env.production` - Producción
-- `.env.example` - Plantilla
-
-**Nunca subas los archivos `.env.*` a Git** (ya están en `.gitignore`)
-
-## 🧪 Testing
-
-```bash
-cd server
-pytest tests/
-```
-
-## 📚 API Endpoints
-
-### Base URL: `http://localhost:5000/api`
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/tasks` | Listar todas las tareas |
-| GET | `/tasks/:id` | Obtener tarea específica |
-| POST | `/tasks` | Crear nueva tarea |
-| PUT | `/tasks/:id` | Actualizar tarea |
-| DELETE | `/tasks/:id` | Eliminar tarea |
-
-Ver documentación completa de la API en [server/README.md](server/README.md)
-
-## 🐳 Docker
-
-### Comandos útiles:
-
-```bash
-# Levantar servicios
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Parar servicios
-docker-compose down
-
-# Parar y eliminar datos (⚠️ CUIDADO)
-docker-compose down -v
-
-# Ver estado
-docker-compose ps
-```
-
-## 🗄️ Base de Datos
-
-### Modelo de Datos - Task
-
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| id | Integer | ID único (auto-incremental) |
-| titulo | String(200) | Título de la tarea |
-| descripcion | Text | Descripción detallada |
-| fecha | Date | Fecha de la tarea |
-| hora | Time | Hora específica (opcional) |
-| completada | Boolean | Estado de completitud |
-| prioridad | String(20) | alta, media, baja |
-| tipo | String(20) | diaria, semanal |
-| created_at | DateTime | Fecha de creación |
-| updated_at | DateTime | Última actualización |
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
-
-## 👤 Autor
-
-**Victor**
-
-- GitHub: [@tu-usuario](https://github.com/tu-usuario)
-
-## 🙏 Agradecimientos
-
-- Flask community
-- PostgreSQL team
-- Docker team
 
 ---
 
-⭐ Si te gusta este proyecto, dale una estrella en GitHub!
+## 🚀 Instalación y Configuración
+
+### Prerrequisitos
+- Python 3.10 o superior
+- Node.js 14 o superior
+- npm o yarn
+
+### 1. Clonar el repositorio
+```bash
+git clone <url-del-repositorio>
+cd daily-planner
+```
+
+### 2. Configurar el Backend
+
+```bash
+cd server
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual
+# En Linux/Mac:
+source venv/bin/activate
+# En Windows:
+venv\Scripts\activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Iniciar servidor
+python src/app.py
+```
+
+El servidor estará corriendo en **http://localhost:5000**
+
+### 3. Configurar el Frontend
+
+```bash
+cd client
+
+# Instalar dependencias
+npm install
+
+# Crear archivo .env
+echo "REACT_APP_API_URL=http://localhost:5000/api" > .env
+
+# Iniciar aplicación
+npm start
+```
+
+La aplicación estará disponible en **http://localhost:3000**
+
+---
+
+## 📖 Uso
+
+### Crear una Tarea
+1. Click en **"+ Nueva Tarea"**
+2. Completa el formulario:
+   - **Título** (obligatorio)
+   - **Descripción** (opcional)
+   - **Fecha** (obligatoria)
+   - **Hora** (opcional)
+   - **Prioridad**: Alta, Media o Baja
+   - **Tipo**: Diaria o Semanal
+3. Click en **"Crear Tarea"**
+
+### Gestionar Tareas
+- ✏️ **Editar**: Click en el icono de lápiz
+- 🗑️ **Eliminar**: Click en el icono de papelera
+- ☑️ **Completar**: Click en el checkbox
+
+### Cambiar Vista
+- **Lista**: Ver todas las tareas en formato lista
+- **Mes (Días)**: Ver tareas en calendario mensual por días
+- **Mes (Semanas)**: Ver tareas agrupadas por semanas
+
+### Filtros (Solo en Vista Lista)
+- **Todas**: Muestra todas las tareas
+- **Pendientes**: Solo tareas no completadas
+- **Completadas**: Solo tareas completadas
+
+---
+
+## 🎯 API Endpoints
+
+### Tareas
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/tasks/` | Obtener todas las tareas |
+| GET | `/api/tasks/<id>` | Obtener tarea por ID |
+| POST | `/api/tasks/` | Crear nueva tarea |
+| PUT | `/api/tasks/<id>` | Actualizar tarea |
+| DELETE | `/api/tasks/<id>` | Eliminar tarea |
+| PATCH | `/api/tasks/<id>/toggle` | Cambiar estado completada |
+| GET | `/api/tasks/pending` | Obtener tareas pendientes |
+| GET | `/api/tasks/date/<fecha>` | Obtener tareas por fecha |
+
+---
+
+## 🎨 Características Visuales
+
+### Código de Colores por Prioridad
+- 🔴 **Alta**: Rojo
+- 🟡 **Media**: Amarillo
+- 🟢 **Baja**: Verde
+
+### Indicadores
+- 📅 Badge para tareas semanales
+- 🕐 Icono de reloj para tareas con hora
+- ✅ Checkbox para marcar completadas
+- ↻ Borde punteado para tareas semanales en calendario
+
+---
+
+## 🐛 Solución de Problemas
+
+### El frontend no se conecta al backend
+1. Verifica que el servidor backend está corriendo en el puerto 5000
+2. Verifica el archivo `.env` en `client/`:
+   ```
+   REACT_APP_API_URL=http://localhost:5000/api
+   ```
+3. Reinicia el servidor React después de cambiar `.env`
+
+### Errores de CORS
+- El backend tiene CORS habilitado por defecto
+- Si persiste, verifica `app.py` línea con `CORS(app)`
+
+### "react-scripts: command not found"
+```bash
+cd client
+rm -rf node_modules package-lock.json
+npm install
+```
+
+---
+
+## 📝 Notas de Desarrollo
+
+### Base de Datos
+- SQLite almacenada en `server/daily_planner.db`
+- Se crea automáticamente al iniciar el servidor
+- Para resetear: elimina el archivo `.db` y reinicia
+
+### Hot Reload
+- **Backend**: Requiere reinicio manual
+- **Frontend**: Recarga automática al guardar cambios
