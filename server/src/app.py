@@ -25,19 +25,23 @@ def get_data_directory():
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
     
-    # Get data directory
-    data_dir = get_data_directory()
-    db_path = data_dir / 'daily_planner.db'
-    
-    # Configuración de la base de datos
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    print(f"📁 Data directory: {data_dir}")
-    print(f"🗄️  Database: {db_path}")
+    if test_config is None:
+        # Get data directory
+        data_dir = get_data_directory()
+        db_path = data_dir / 'daily_planner.db'
+        
+        # Configuración de la base de datos
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        
+        print(f"📁 Data directory: {data_dir}")
+        print(f"🗄️  Database: {db_path}")
+    else:
+        # Load test config
+        app.config.update(test_config)
 
     
     # Inicializar base de datos

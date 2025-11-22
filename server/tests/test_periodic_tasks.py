@@ -13,9 +13,11 @@ from models.task import Task
 
 class TestPeriodicTasks(unittest.TestCase):
     def setUp(self):
-        self.app_instance = create_app()
-        self.app_instance.config['TESTING'] = True
-        self.app_instance.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        self.app_instance = create_app({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False
+        })
         self.app = self.app_instance.test_client()
         
         with self.app_instance.app_context():
