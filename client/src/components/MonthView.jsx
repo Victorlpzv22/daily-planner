@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Paper, 
-  Typography, 
-  IconButton, 
+import {
+  Box,
+  Paper,
+  Typography,
+  IconButton,
   Chip,
   useTheme,
   alpha,
@@ -13,16 +13,16 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import DateRangeIcon from '@mui/icons-material/DateRange';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  addDays, 
-  isSameMonth, 
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  isSameMonth,
   isSameDay,
-  addMonths, 
+  addMonths,
   subMonths,
   differenceInDays,
   max,
@@ -42,9 +42,9 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
 
   const renderHeader = () => {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         mb: 2,
       }}>
@@ -63,10 +63,10 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
 
   const renderDaysOfWeek = () => {
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    
+
     return (
-      <Box sx={{ 
-        display: 'grid', 
+      <Box sx={{
+        display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
         gap: 1,
         mb: 1,
@@ -87,13 +87,13 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
     const normalizedTaskEnd = startOfDay(taskEnd);
     const normalizedWeekStart = startOfDay(weekStart);
     const normalizedWeekEnd = startOfDay(weekEnd);
-    
+
     const visibleStart = max([normalizedTaskStart, normalizedWeekStart]);
     const visibleEnd = min([normalizedTaskEnd, normalizedWeekEnd]);
-    
+
     const startDayIndex = differenceInDays(visibleStart, normalizedWeekStart);
     const spanDays = differenceInDays(visibleEnd, visibleStart) + 1;
-    
+
     return {
       startColumn: startDayIndex + 1,
       spanColumns: spanDays,
@@ -116,33 +116,33 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
       const multiDayTasks = tasks.filter(task => {
         const taskStart = new Date(task.fecha_inicio);
         const taskEnd = new Date(task.fecha_fin);
-        
+
         if (task.tipo === 'diaria') return false;
         if (task.fecha_inicio === task.fecha_fin) return false;
-        
+
         return (taskStart <= weekEnd && taskEnd >= weekStart);
       });
 
       const days = [];
       for (let i = 0; i < 7; i++) {
         const cloneDay = addDays(weekStart, i);
-        
+
         const dailyTasks = tasks.filter(task => {
           const taskStart = new Date(task.fecha_inicio);
           const normalizedCloneDay = startOfDay(cloneDay);
           const normalizedTaskStart = startOfDay(taskStart);
-          
+
           if (task.tipo === 'diaria') {
             return isSameDay(normalizedCloneDay, normalizedTaskStart);
           }
-          
+
           if (task.fecha_inicio === task.fecha_fin) {
             return isSameDay(normalizedCloneDay, normalizedTaskStart);
           }
-          
+
           return false;
         });
-        
+
         const isToday = isSameDay(cloneDay, new Date());
         const isCurrentMonth = isSameMonth(cloneDay, monthStart);
 
@@ -155,7 +155,7 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
               maxHeight: 140,
               p: 1,
               cursor: 'pointer',
-              bgcolor: isCurrentMonth 
+              bgcolor: isCurrentMonth
                 ? (isToday ? alpha(theme.palette.primary.main, 0.1) : 'background.paper')
                 : 'action.hover',
               transition: 'all 0.2s',
@@ -169,9 +169,9 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
             }}
             onClick={() => onDayClick(cloneDay)}
           >
-            <Typography 
-              variant="body2" 
-              sx={{ 
+            <Typography
+              variant="body2"
+              sx={{
                 fontWeight: isToday ? 700 : 500,
                 color: isCurrentMonth ? 'text.primary' : 'text.disabled',
                 mb: 0.5,
@@ -179,17 +179,17 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
             >
               {format(cloneDay, 'd')}
             </Typography>
-            
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
+
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
               gap: 0.5,
               overflow: 'hidden',
               flex: 1,
             }}>
               {dailyTasks.slice(0, 2).map(task => (
-                <Tooltip 
-                  key={task.id} 
+                <Tooltip
+                  key={task.id}
                   title={`${task.titulo} ${task.hora ? '(' + task.hora.substring(0, 5) + ')' : ''}`}
                   arrow
                   placement="top"
@@ -205,13 +205,13 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                     sx={{
                       fontSize: '0.65rem',
                       height: 20,
-                      bgcolor: task.color || '#1976d2',
+                      bgcolor: task.color || '#6750A4',
                       color: '#fff',
                       textDecoration: task.completada ? 'line-through' : 'none',
                       opacity: task.completada ? 0.6 : 1,
                       maxWidth: '100%',
                       '&:hover': {
-                        bgcolor: task.color || '#1976d2',
+                        bgcolor: task.color || '#6750A4',
                         filter: 'brightness(0.9)',
                       },
                       '& .MuiChip-label': {
@@ -225,8 +225,8 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                 </Tooltip>
               ))}
               {dailyTasks.length > 2 && (
-                <Typography 
-                  variant="caption" 
+                <Typography
+                  variant="caption"
                   color="text.secondary"
                   sx={{
                     fontSize: '0.65rem',
@@ -243,17 +243,17 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
       }
 
       rows.push(
-        <Box 
-          key={weekStart.toString()} 
-          sx={{ 
+        <Box
+          key={weekStart.toString()}
+          sx={{
             position: 'relative',
             mb: 2,
           }}
         >
-          <Box 
+          <Box
             id="week-grid"
-            sx={{ 
-              display: 'grid', 
+            sx={{
+              display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
               gap: 1,
             }}
@@ -262,8 +262,8 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
           </Box>
 
           {multiDayTasks.length > 0 && (
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 mt: 1,
                 display: 'flex',
                 flexDirection: 'column',
@@ -274,19 +274,19 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                 const taskStart = new Date(task.fecha_inicio);
                 const taskEnd = new Date(task.fecha_fin);
                 const { startColumn, spanColumns } = calculateTaskPosition(
-                  taskStart, 
-                  taskEnd, 
-                  weekStart, 
+                  taskStart,
+                  taskEnd,
+                  weekStart,
                   weekEnd
                 );
 
                 const taskIcon = task.tipo === 'semanal' ? <RepeatIcon /> : <DateRangeIcon />;
                 const taskStartFormatted = format(taskStart, 'd MMM', { locale: es });
                 const taskEndFormatted = format(taskEnd, 'd MMM', { locale: es });
-                
+
                 return (
-                  <Tooltip 
-                    key={task.id} 
+                  <Tooltip
+                    key={task.id}
                     title={`${task.titulo} (${taskStartFormatted} - ${taskEndFormatted})`}
                     arrow
                     placement="top"
@@ -307,10 +307,10 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                           px: 1.5,
                           py: 0.5,
                           cursor: 'pointer',
-                          bgcolor: task.color || '#1976d2',
+                          bgcolor: task.color || '#6750A4',
                           color: '#fff',
                           borderLeft: '4px solid',
-                          borderLeftColor: task.color || '#1976d2',
+                          borderLeftColor: task.color || '#6750A4',
                           filter: task.completada ? 'brightness(0.7)' : 'none',
                           borderRadius: 1,
                           transition: 'all 0.2s',
@@ -326,9 +326,9 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                       >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {React.cloneElement(taskIcon, { sx: { fontSize: '0.9rem' } })}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
+                          <Typography
+                            variant="body2"
+                            sx={{
                               fontWeight: 500,
                               fontSize: '0.8rem',
                               flex: 1,
@@ -340,9 +340,9 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                             {task.titulo}
                           </Typography>
                           {spanColumns >= 3 && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
+                            <Typography
+                              variant="caption"
+                              sx={{
                                 opacity: 0.8,
                                 fontSize: '0.65rem',
                                 whiteSpace: 'nowrap',
@@ -352,9 +352,9 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
                             </Typography>
                           )}
                           {task.hora && spanColumns >= 2 && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
+                            <Typography
+                              variant="caption"
+                              sx={{
                                 opacity: 0.8,
                                 fontSize: '0.7rem',
                               }}
@@ -372,8 +372,8 @@ function MonthView({ tasks, onTaskClick, onDayClick }) {
           )}
 
           {multiDayTasks.length > 3 && (
-            <Typography 
-              variant="caption" 
+            <Typography
+              variant="caption"
               color="text.secondary"
               sx={{
                 fontSize: '0.65rem',

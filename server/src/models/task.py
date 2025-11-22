@@ -14,6 +14,7 @@ class Task(db.Model):
     prioridad = db.Column(db.String(10), default='media')
     tipo = db.Column(db.String(15), default='diaria')
     color = db.Column(db.String(7), default='#1976d2')
+    group_id = db.Column(db.String(36), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -29,4 +30,5 @@ class Task(db.Model):
             'prioridad': self.prioridad,
             'tipo': self.tipo,
             'color': self.color,
+            'group_id': self.group_id,
         }

@@ -36,11 +36,11 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
   const getDateRangeText = () => {
     const inicio = formatDate(task.fecha_inicio);
     const fin = formatDate(task.fecha_fin);
-    
+
     if (task.fecha_inicio === task.fecha_fin || task.tipo === 'diaria') {
       return inicio;
     }
-    
+
     return `${inicio} - ${fin}`;
   };
 
@@ -69,7 +69,7 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
           transform: 'translateY(-2px)',
         },
         borderLeft: `4px solid`,
-        borderLeftColor: task.color || '#1976d2',
+        borderLeftColor: task.color || '#6750A4',
       }}
     >
       <CardContent sx={{ pb: 1 }}>
@@ -78,11 +78,11 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
             checked={task.completada}
             onChange={() => onToggle(task.id)}
             color="primary"
-            sx={{ 
+            sx={{
               mt: -1,
-              color: task.color || '#1976d2',
+              color: task.color || '#6750A4',
               '&.Mui-checked': {
-                color: task.color || '#1976d2',
+                color: task.color || '#6750A4',
               }
             }}
           />
@@ -119,8 +119,8 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
                 size="small"
                 variant="outlined"
                 sx={{
-                  borderColor: task.color || '#1976d2',
-                  color: task.color || '#1976d2',
+                  borderColor: task.color || '#6750A4',
+                  color: task.color || '#6750A4',
                 }}
               />
 
@@ -139,8 +139,8 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
                   size="small"
                   variant="outlined"
                   sx={{
-                    borderColor: task.color || '#1976d2',
-                    color: task.color || '#1976d2',
+                    borderColor: task.color || '#6750A4',
+                    color: task.color || '#6750A4',
                   }}
                 />
               )}
@@ -149,7 +149,7 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
                 label={task.prioridad.toUpperCase()}
                 size="small"
                 sx={{
-                  bgcolor: task.color || '#1976d2',
+                  bgcolor: task.color || '#6750A4',
                   color: '#fff',
                 }}
               />

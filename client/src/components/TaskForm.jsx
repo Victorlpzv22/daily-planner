@@ -38,7 +38,7 @@ const PRESET_COLORS = [
   { name: 'Rosa', value: '#c2185b' },
   { name: 'Púrpura', value: '#7b1fa2' },
   { name: 'Índigo', value: '#303f9f' },
-  { name: 'Azul', value: '#1976d2' },
+  { name: 'Azul', value: '#6750A4' },
   { name: 'Cian', value: '#0097a7' },
   { name: 'Verde', value: '#388e3c' },
   { name: 'Lima', value: '#689f38' },
@@ -60,10 +60,20 @@ function TaskForm({ task, onSubmit, onCancel }) {
     hora: null,
     prioridad: 'media',
     tipo: 'diaria',
-    color: '#1976d2',
+    color: '#6750A4',
   });
 
   const [errors, setErrors] = useState({});
+
+  const [recurrence, setRecurrence] = useState({
+    enabled: false,
+    frequency: 'daily',
+    interval: 1,
+    weekdays: [],
+    endType: 'date',
+    endDate: dayjs().add(1, 'month'),
+    count: 10
+  });
 
   useEffect(() => {
     if (task) {
@@ -77,14 +87,16 @@ function TaskForm({ task, onSubmit, onCancel }) {
         tipo: task.tipo || 'diaria',
         color: task.color || '#1976d2',
       });
+      // Note: Recurrence editing is not supported for individual tasks in this version
+      // Ideally we would load recurrence settings if we were editing a series
     }
   }, [task]);
 
   const handleTipoChange = (event, newTipo) => {
     if (newTipo === null) return;
-    
+
     let newFechaFin = formData.fecha_inicio;
-    
+
     if (newTipo === 'diaria') {
       newFechaFin = formData.fecha_inicio;
       setFormData({
@@ -109,31 +121,31 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!formData.titulo.trim()) {
       newErrors.titulo = 'El título es obligatorio';
     }
-    
+
     if (!formData.fecha_inicio) {
       newErrors.fecha_inicio = 'La fecha de inicio es obligatoria';
     }
-    
+
     if (!formData.fecha_fin) {
       newErrors.fecha_fin = 'La fecha de fin es obligatoria';
     }
-    
-    if (formData.fecha_fin && formData.fecha_inicio && 
-        formData.fecha_fin.isBefore(formData.fecha_inicio)) {
+
+    if (formData.fecha_fin && formData.fecha_inicio &&
+      formData.fecha_fin.isBefore(formData.fecha_inicio)) {
       newErrors.fecha_fin = 'La fecha de fin debe ser posterior o igual a la de inicio';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
 
     const dataToSubmit = {
@@ -145,6 +157,15 @@ function TaskForm({ task, onSubmit, onCancel }) {
       prioridad: formData.prioridad,
       tipo: formData.tipo,
       color: formData.color,
+      recurrence: recurrence.enabled ? {
+        enabled: true,
+        frequency: recurrence.frequency,
+        interval: recurrence.interval,
+        weekdays: recurrence.weekdays,
+        endType: recurrence.endType,
+        endDate: recurrence.endDate ? recurrence.endDate.format('YYYY-MM-DD') : null,
+        count: recurrence.count
+      } : null
     };
 
     onSubmit(dataToSubmit);
@@ -179,21 +200,21 @@ function TaskForm({ task, onSubmit, onCancel }) {
   };
 
   return (
-    <Dialog 
-      open={true} 
+    <Dialog
+      open={true}
       onClose={onCancel}
       fullScreen={fullScreen}
       maxWidth="sm"
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box 
-          sx={{ 
-            width: 8, 
-            height: 32, 
-            bgcolor: formData.color, 
-            borderRadius: 1 
-          }} 
+        <Box
+          sx={{
+            width: 8,
+            height: 32,
+            bgcolor: formData.color,
+            borderRadius: 1
+          }}
         />
         {task ? 'Editar Tarea' : 'Nueva Tarea'}
       </DialogTitle>
@@ -290,7 +311,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
                   fullWidth: true,
                   required: true,
                   error: !!errors.fecha_fin,
-                  helperText: errors.fecha_fin || 
+                  helperText: errors.fecha_fin ||
                     (formData.tipo !== 'personalizado' ? 'Automático según el tipo' : 'Debe ser igual o posterior a la fecha de inicio'),
                 },
               }}
@@ -323,6 +344,144 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
           <Divider sx={{ my: 1 }} />
 
+          {/* Recurrence Section */}
+          {!task && (
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: recurrence.enabled ? 2 : 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <RepeatIcon color="action" />
+                  <Typography variant="body1">Repetir tarea</Typography>
+                </Box>
+                <Button
+                  variant={recurrence.enabled ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setRecurrence({ ...recurrence, enabled: !recurrence.enabled })}
+                >
+                  {recurrence.enabled ? "Activado" : "Desactivado"}
+                </Button>
+              </Box>
+
+              {recurrence.enabled && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Frecuencia</InputLabel>
+                      <Select
+                        value={recurrence.frequency}
+                        label="Frecuencia"
+                        onChange={(e) => setRecurrence({ ...recurrence, frequency: e.target.value })}
+                      >
+                        <MenuItem value="daily">Diaria</MenuItem>
+                        <MenuItem value="weekly">Semanal</MenuItem>
+                        <MenuItem value="monthly">Mensual</MenuItem>
+                        <MenuItem value="yearly">Anual</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <TextField
+                      label="Cada..."
+                      type="number"
+                      size="small"
+                      value={recurrence.interval}
+                      onChange={(e) => setRecurrence({ ...recurrence, interval: Math.max(1, parseInt(e.target.value) || 1) })}
+                      InputProps={{
+                        endAdornment: <Typography variant="caption" sx={{ ml: 1 }}>
+                          {recurrence.frequency === 'daily' ? 'días' :
+                            recurrence.frequency === 'weekly' ? 'semanas' :
+                              recurrence.frequency === 'monthly' ? 'meses' : 'años'}
+                        </Typography>
+                      }}
+                      sx={{ width: '150px' }}
+                    />
+                  </Box>
+
+                  {recurrence.frequency === 'weekly' && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        Días de la semana
+                      </Typography>
+                      <ToggleButtonGroup
+                        value={recurrence.weekdays}
+                        onChange={(e, newDays) => setRecurrence({ ...recurrence, weekdays: newDays })}
+                        aria-label="días de la semana"
+                        size="small"
+                        fullWidth
+                      >
+                        {['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'].map((day, index) => (
+                          <ToggleButton key={day} value={day} aria-label={day}>
+                            {['L', 'M', 'X', 'J', 'V', 'S', 'D'][index]}
+                          </ToggleButton>
+                        ))}
+                      </ToggleButtonGroup>
+                    </Box>
+                  )}
+
+                  <Divider sx={{ borderStyle: 'dashed' }} />
+
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                      Termina
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <input
+                          type="radio"
+                          checked={recurrence.endType === 'date'}
+                          onChange={() => setRecurrence({ ...recurrence, endType: 'date' })}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <Typography
+                          variant="body2"
+                          onClick={() => setRecurrence({ ...recurrence, endType: 'date' })}
+                          sx={{ cursor: 'pointer', flexGrow: 1 }}
+                        >
+                          En fecha específica
+                        </Typography>
+                        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                          <DatePicker
+                            value={recurrence.endDate}
+                            onChange={(newValue) => setRecurrence({ ...recurrence, endDate: newValue })}
+                            disabled={recurrence.endType !== 'date'}
+                            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                          />
+                        </LocalizationProvider>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <input
+                          type="radio"
+                          checked={recurrence.endType === 'count'}
+                          onChange={() => setRecurrence({ ...recurrence, endType: 'count' })}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <Typography
+                          variant="body2"
+                          onClick={() => setRecurrence({ ...recurrence, endType: 'count' })}
+                          sx={{ cursor: 'pointer', flexGrow: 1 }}
+                        >
+                          Después de
+                        </Typography>
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={recurrence.count}
+                          onChange={(e) => setRecurrence({ ...recurrence, count: Math.max(1, parseInt(e.target.value) || 1) })}
+                          disabled={recurrence.endType !== 'count'}
+                          InputProps={{
+                            endAdornment: <Typography variant="caption" sx={{ ml: 1 }}>veces</Typography>
+                          }}
+                          sx={{ width: 160 }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          <Divider sx={{ my: 1 }} />
+
           {/* Selector de Color Mejorado */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -333,9 +492,9 @@ function TaskForm({ task, onSubmit, onCancel }) {
             </Box>
 
             {/* Vista previa del color seleccionado */}
-            <Box 
-              sx={{ 
-                p: 2, 
+            <Box
+              sx={{
+                p: 2,
                 mb: 2,
                 borderRadius: 2,
                 bgcolor: formData.color,
@@ -361,9 +520,9 @@ function TaskForm({ task, onSubmit, onCancel }) {
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
               Colores predefinidos
             </Typography>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(6, 1fr)', 
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(6, 1fr)',
               gap: 1,
               mb: 2,
             }}>
@@ -379,8 +538,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
                     borderRadius: 1.5,
                     bgcolor: colorOption.value,
                     border: '3px solid',
-                    borderColor: formData.color === colorOption.value 
-                      ? 'primary.main' 
+                    borderColor: formData.color === colorOption.value
+                      ? 'primary.main'
                       : 'transparent',
                     transition: 'all 0.2s',
                     boxShadow: formData.color === colorOption.value ? 3 : 1,
@@ -405,7 +564,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
                 />
               ))}
             </Box>
-            
+
             {/* Input de color personalizado */}
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
               O elige un color personalizado
@@ -456,16 +615,16 @@ function TaskForm({ task, onSubmit, onCancel }) {
                 helperText="Formato: #RRGGBB"
                 InputProps={{
                   startAdornment: (
-                    <Box 
-                      sx={{ 
-                        width: 24, 
-                        height: 24, 
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
                         borderRadius: 0.5,
                         bgcolor: formData.color,
                         border: '1px solid',
                         borderColor: 'divider',
                         mr: 1,
-                      }} 
+                      }}
                     />
                   ),
                 }}
@@ -479,10 +638,10 @@ function TaskForm({ task, onSubmit, onCancel }) {
         <Button onClick={onCancel} color="inherit">
           Cancelar
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          sx={{ 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          sx={{
             bgcolor: formData.color,
             minWidth: 120,
             '&:hover': {

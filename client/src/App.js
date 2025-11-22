@@ -11,11 +11,11 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  createTheme,
   ThemeProvider,
   CssBaseline,
   Avatar,
 } from '@mui/material';
+import { createCustomTheme } from './theme/theme';
 import AddIcon from '@mui/icons-material/Add';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -40,18 +40,7 @@ function App() {
   });
 
   const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: darkMode ? 'dark' : 'light',
-          primary: {
-            main: '#1976d2',
-          },
-          secondary: {
-            main: '#dc004e',
-          },
-        },
-      }),
+    () => createCustomTheme(darkMode ? 'dark' : 'light'),
     [darkMode]
   );
 
@@ -87,11 +76,11 @@ function App() {
       setLoading(true);
       setError(null);
       const response = await axios.get(API_URL);
-      
+
       console.log('📦 Respuesta del servidor:', response.data);
-      
+
       const tasksData = response.data.tasks || response.data || [];
-      
+
       if (Array.isArray(tasksData)) {
         setTasks(tasksData);
         console.log('✅ Tareas cargadas:', tasksData.length);
@@ -235,7 +224,7 @@ function App() {
                 >
                   {dayNumber}
                 </Avatar>
-                
+
                 <Box>
                   <Typography
                     variant={isMobile ? 'h5' : 'h4'}
@@ -253,7 +242,7 @@ function App() {
                   </Typography>
                 </Box>
               </Box>
-              
+
               {/* Botón modo oscuro */}
               <IconButton onClick={toggleDarkMode} color="inherit">
                 {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
@@ -319,7 +308,7 @@ function App() {
                   onDayClick={handleDayClick}
                 />
               )}
-              
+
               {viewMode === 'week' && (
                 <WeekView
                   tasks={tasks}
@@ -327,7 +316,7 @@ function App() {
                   onDayClick={handleDayClick}
                 />
               )}
-              
+
               {viewMode === 'list' && (
                 <TaskList
                   tasks={tasks}

@@ -1,6 +1,6 @@
 # 🖥️ Daily Planner - Backend (API REST)
 
-Backend en Flask para la aplicación Daily Planner.
+Backend en Flask para la aplicación Daily Planner con soporte para tareas periódicas.
 
 ---
 
@@ -9,7 +9,9 @@ Backend en Flask para la aplicación Daily Planner.
 - **Python 3.10+**
 - **Flask 3.0.0** - Framework web
 - **Flask-CORS 4.0.0** - Manejo de CORS
-- **SQLAlchemy 2.0.23** - ORM
+- **Flask-SQLAlchemy 3.1.1** - Integración Flask-SQLAlchemy
+- **SQLAlchemy 2.0.44** - ORM
+- **python-dateutil 2.8.2** - Manejo de fechas y recurrencias
 - **SQLite** - Base de datos
 
 ---
@@ -19,14 +21,24 @@ Backend en Flask para la aplicación Daily Planner.
 ```
 server/
 ├── src/
-│   ├── app.py           # Aplicación principal Flask
-│   ├── models.py        # Modelos SQLAlchemy
-│   └── routes/
-│       └── tasks.py     # Rutas de la API
-├── venv/                # Entorno virtual
-├── daily_planner.db     # Base de datos SQLite (generada automáticamente)
-├── requirements.txt     # Dependencias
-└── README.md            # Este archivo
+│   ├── __init__.py
+│   ├── app.py                # Aplicación principal Flask
+│   ├── config/               # Configuración
+│   ├── database/             # Configuración de base de datos
+│   │   └── db.py            # Inicialización SQLAlchemy
+│   ├── models/               # Modelos SQLAlchemy
+│   │   └── task.py          # Modelo de tareas
+│   ├── controllers/          # Lógica de negocio
+│   │   └── task_controller.py
+│   └── routes/               # Rutas de la API
+│       └── task_routes.py   # Endpoints de tareas
+├── tests/                    # Tests unitarios
+│   └── test_periodic_tasks.py
+├── instance/                 # Base de datos SQLite
+│   └── daily_planner.db     # (generada automáticamente)
+├── venv/                     # Entorno virtual
+├── requirements.txt          # Dependencias
+└── README.md                 # Este archivo
 ```
 
 ---
@@ -86,11 +98,14 @@ GET /tasks/
     "id": 1,
     "titulo": "Reunión con equipo",
     "descripcion": "Revisar avances del proyecto",
-    "fecha": "2025-11-10",
+    "fecha_inicio": "2025-11-10",
+    "fecha_fin": "2025-11-10",
     "hora": "10:00:00",
     "completada": false,
     "prioridad": "alta",
-    "tipo": "diaria"
+    "tipo": "diaria",
+    "color": "#1976d2",
+    "group_id": null
   }
 ]
 ```
@@ -115,17 +130,47 @@ POST /tasks/
 Content-Type: application/json
 ```
 
-**Body:**
+**Body (Tarea Simple):**
 ```json
 {
   "titulo": "Nueva tarea",
   "descripcion": "Descripción opcional",
-  "fecha": "2025-11-10",
+  "fecha_inicio": "2025-11-10",
+  "fecha_fin": "2025-11-10",
   "hora": "14:30:00",
   "prioridad": "media",
-  "tipo": "diaria"
+  "tipo": "diaria",
+  "color": "#1976d2"
 }
 ```
+
+**Body (Tarea Periódica):**
+```json
+{
+  "titulo": "Ejercicio diario",
+  "descripcion": "30 minutos de cardio",
+  "fecha_inicio": "2025-11-10",
+  "fecha_fin": "2025-11-10",
+  "hora": "07:00:00",
+  "prioridad": "alta",
+  "color": "#ff5722",
+  "recurrence": {
+    "enabled": true,
+    "frequency": "daily",
+    "interval": 1,
+    "endType": "count",
+    "count": 30
+  }
+}
+```
+
+**Opciones de Recurrencia:**
+- `frequency`: "daily", "weekly", "monthly", "yearly"
+- `interval`: Número entero (cada N días/semanas/meses/años)
+- `weekdays`: Array de días ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] (solo para weekly)
+- `endType`: "date" o "count"
+- `endDate`: Fecha límite (si endType es "date")
+- `count`: Número de ocurrencias (si endType es "count")
 
 **Respuesta:**
 ```json
@@ -162,6 +207,22 @@ DELETE /tasks/<id>
 ```json
 {
   "message": "Tarea eliminada exitosamente"
+}
+```
+
+---
+
+#### Eliminar grupo de tareas periódicas
+```http
+DELETE /tasks/group/<group_id>
+```
+
+**Descripción:** Elimina todas las tareas que pertenecen al mismo grupo periódico.
+
+**Respuesta:**
+```json
+{
+  "message": "5 tareas del grupo eliminadas exitosamente"
 }
 ```
 
@@ -212,11 +273,16 @@ GET /tasks/date/2025-11-10
 | id | Integer | ID único (auto-generado) | ✅ |
 | titulo | String(200) | Título de la tarea | ✅ |
 | descripcion | Text | Descripción detallada | ❌ |
-| fecha | Date | Fecha de la tarea | ✅ |
+| fecha_inicio | Date | Fecha de inicio de la tarea | ✅ |
+| fecha_fin | Date | Fecha de fin de la tarea | ✅ |
 | hora | Time | Hora específica | ❌ |
 | completada | Boolean | Estado (default: false) | ✅ |
 | prioridad | String(10) | alta, media, baja (default: media) | ✅ |
-| tipo | String(10) | diaria, semanal (default: diaria) | ✅ |
+| tipo | String(15) | diaria, semanal (default: diaria) | ✅ |
+| color | String(7) | Color en formato hex (default: #1976d2) | ✅ |
+| group_id | String(36) | UUID para agrupar tareas periódicas | ❌ |
+| created_at | DateTime | Fecha de creación (auto) | ✅ |
+| updated_at | DateTime | Fecha de actualización (auto) | ✅ |
 
 ---
 
@@ -259,7 +325,7 @@ CORS(app, resources={
 
 ### SQLite
 
-- **Ubicación:** `server/daily_planner.db`
+- **Ubicación:** `server/instance/daily_planner.db`
 - **Creación:** Automática al iniciar el servidor
 - **Migraciones:** Se crean tablas automáticamente con `db.create_all()`
 
@@ -268,11 +334,35 @@ CORS(app, resources={
 ```bash
 # Detener el servidor
 # Eliminar la base de datos
-rm daily_planner.db
+rm -rf instance/daily_planner.db
 
 # Reiniciar el servidor (se creará nueva BD)
 python src/app.py
 ```
+
+---
+
+## 🧪 Testing
+
+### Ejecutar Tests Unitarios
+
+```bash
+# Desde el directorio server/
+python -m pytest tests/
+
+# Con verbose
+python -m pytest tests/ -v
+
+# Test específico
+python -m pytest tests/test_periodic_tasks.py
+```
+
+### Tests Disponibles
+- `test_periodic_tasks.py`: Tests para tareas periódicas
+  - Creación de tareas diarias recurrentes
+  - Creación de tareas semanales con días específicos
+  - Validación de fechas generadas
+  - Verificación de group_id
 
 ---
 
@@ -295,7 +385,7 @@ Los logs se muestran en la consola:
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing con curl
 
 ### Probar endpoints con curl
 
@@ -303,14 +393,34 @@ Los logs se muestran en la consola:
 # Obtener todas las tareas
 curl http://localhost:5000/api/tasks/
 
-# Crear una tarea
+# Health check
+curl http://localhost:5000/api/health
+
+# Crear una tarea simple
 curl -X POST http://localhost:5000/api/tasks/ \
   -H "Content-Type: application/json" \
   -d '{
     "titulo": "Test",
-    "fecha": "2025-11-10",
+    "fecha_inicio": "2025-11-10",
+    "fecha_fin": "2025-11-10",
     "prioridad": "alta",
     "tipo": "diaria"
+  }'
+
+# Crear tarea periódica (5 días)
+curl -X POST http://localhost:5000/api/tasks/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "titulo": "Ejercicio",
+    "fecha_inicio": "2025-11-10",
+    "fecha_fin": "2025-11-10",
+    "recurrence": {
+      "enabled": true,
+      "frequency": "daily",
+      "interval": 1,
+      "endType": "count",
+      "count": 5
+    }
   }'
 
 # Actualizar tarea
@@ -320,6 +430,9 @@ curl -X PUT http://localhost:5000/api/tasks/1 \
 
 # Eliminar tarea
 curl -X DELETE http://localhost:5000/api/tasks/1
+
+# Eliminar grupo de tareas periódicas
+curl -X DELETE http://localhost:5000/api/tasks/group/abc-123-def
 ```
 
 ---
@@ -332,7 +445,11 @@ Ver `requirements.txt`:
 Flask==3.0.0
 Flask-CORS==4.0.0
 Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.0.23
+SQLAlchemy==2.0.44
+python-dateutil==2.8.2
+python-dotenv==1.0.0
+psycopg==3.2.12
+psycopg-binary==3.2.12
 ```
 
 ### Instalar dependencia adicional
@@ -373,5 +490,8 @@ CMD ["python", "src/app.py"]
 ## 📝 Notas
 
 - El servidor recarga automáticamente al detectar cambios (modo debug)
-- Los datos persisten en `daily_planner.db`
-- CORS está configurado para desarrollo (permite todos los orígenes)
+- Los datos persisten en `instance/daily_planner.db`
+- CORS configurado para `http://localhost:3000`
+- Health check disponible en `/api/health`
+- Soporte completo para tareas periódicas con `python-dateutil`
+- Tests unitarios disponibles en `tests/`

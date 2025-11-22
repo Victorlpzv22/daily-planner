@@ -1,17 +1,21 @@
-# 🎨 Daily Planner - Frontend (React)
+# 🎨 Daily Planner - Frontend (React + Material-UI)
 
-Interfaz de usuario moderna y responsiva para la aplicación Daily Planner.
+Interfaz de usuario moderna y responsiva para la aplicación Daily Planner con Material Design 3 y soporte para aplicación de escritorio.
 
 ---
 
 ## 🛠️ Tecnologías
 
-- **React 19.2.0** - Biblioteca UI
+- **React 18.2.0** - Biblioteca UI
+- **Material-UI 5.14.17** - Sistema de diseño Material Design 3
+- **@emotion/react 11.11.1** - CSS-in-JS
+- **@emotion/styled 11.11.0** - Styled components
+- **Material Icons 5.14.16** - Iconos Material Design
 - **React Scripts 5.0.1** - Herramientas de desarrollo
-- **Axios 1.13.2** - Cliente HTTP
-- **date-fns 4.1.0** - Manejo de fechas
-- **React Icons 5.5.0** - Iconos
-- **React Router DOM 7.9.5** - Navegación (preparado para futuras rutas)
+- **Axios 1.6.2** - Cliente HTTP
+- **date-fns 2.30.0** - Manejo de fechas
+- **Electron 27.1.0** - Framework para aplicaciones de escritorio
+- **Electron Builder 24.9.1** - Empaquetado de aplicaciones
 
 ---
 
@@ -20,6 +24,9 @@ Interfaz de usuario moderna y responsiva para la aplicación Daily Planner.
 ```
 client/
 ├── public/
+│   ├── electron.js          # Configuración Electron
+│   ├── icon.png             # Icono para Linux
+│   ├── icon.ico             # Icono para Windows
 │   ├── index.html
 │   ├── manifest.json
 │   └── robots.txt
@@ -28,28 +35,18 @@ client/
 │   │   ├── Header.jsx       # Cabecera de la app
 │   │   ├── TaskList.jsx     # Lista de tareas
 │   │   ├── TaskItem.jsx     # Tarjeta individual de tarea
-│   │   ├── TaskForm.jsx     # Formulario crear/editar
+│   │   ├── TaskForm.jsx     # Formulario crear/editar (con soporte periódicas)
 │   │   ├── TaskFilter.jsx   # Filtros de tareas
 │   │   ├── ViewSelector.jsx # Selector de vistas
 │   │   ├── MonthView.jsx    # Vista calendario mensual
 │   │   └── WeekView.jsx     # Vista semanal
 │   ├── services/
 │   │   └── api.js           # Servicios API
-│   ├── styles/              # Archivos CSS
-│   │   ├── App.css
-│   │   ├── Header.css
-│   │   ├── TaskList.css
-│   │   ├── TaskItem.css
-│   │   ├── TaskForm.css
-│   │   ├── TaskFilter.css
-│   │   ├── ViewSelector.css
-│   │   ├── MonthView.css
-│   │   └── WeekView.css
 │   ├── App.js               # Componente principal
-│   ├── index.js             # Punto de entrada
-│   └── index.css            # Estilos globales
+│   └── index.js             # Punto de entrada
+├── dist/                    # Aplicaciones de escritorio empaquetadas
 ├── .env                     # Variables de entorno
-├── package.json             # Dependencias
+├── package.json             # Dependencias y scripts
 └── README.md                # Este archivo
 ```
 
@@ -114,6 +111,26 @@ npm run eject
 - Expone configuración de webpack
 - Solo si necesitas personalización avanzada
 
+### Electron - Desarrollo
+```bash
+npm run electron-dev
+```
+- Inicia React y Electron simultáneamente
+- Abre la aplicación de escritorio
+
+### Electron - Compilar para Distribución
+```bash
+# Linux (AppImage y Pacman)
+npm run dist:linux
+
+# Windows (NSIS Installer y Portable)
+npm run dist:win
+
+# Ambas plataformas
+npm run dist:all
+```
+- Crea aplicaciones de escritorio empaquetadas en `dist/`
+
 ---
 
 ## 🎨 Componentes
@@ -168,12 +185,22 @@ Tarjeta individual de tarea con:
 ### TaskForm
 **Ubicación:** `src/components/TaskForm.jsx`
 
-Formulario para crear o editar tareas.
+Formulario para crear o editar tareas con soporte para tareas periódicas.
 
 **Props:**
 - `task` - Tarea a editar (null para crear nueva)
 - `onSubmit` - Función al enviar formulario
 - `onCancel` - Función al cancelar
+
+**Características:**
+- Campos para título, descripción, fechas, hora
+- Selector de prioridad y color
+- **Configuración de recurrencia**:
+  - Checkbox para activar tareas periódicas
+  - Selector de frecuencia (diaria, semanal, mensual, anual)
+  - Intervalo personalizable
+  - Selección de días de la semana (para frecuencia semanal)
+  - Tipo de finalización (por fecha o por número de ocurrencias)
 
 ```jsx
 <TaskForm
@@ -295,35 +322,41 @@ const response = await taskService.getTasksByDate(date);
 
 ## 🎨 Estilos
 
-### Variables CSS Globales
+### Material-UI Theme
 
-Los colores principales se definen en `index.css`:
+La aplicación utiliza Material Design 3 con un tema personalizado:
 
-```css
-:root {
-  --color-primary: #4f46e5;
-  --color-danger: #ef4444;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-}
+```javascript
+import { createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 ```
 
-### Prioridades
+### Componentes Material-UI Utilizados
+- **Button**: Botones de acción
+- **TextField**: Campos de entrada
+- **Select**: Selectores desplegables
+- **Checkbox**: Casillas de verificación
+- **Dialog**: Diálogos modales
+- **Card**: Tarjetas de tareas
+- **IconButton**: Botones con iconos
+- **DatePicker**: Selector de fechas
+- **Chip**: Etiquetas de prioridad y tipo
 
-```css
-.priority-alta { /* Rojo */ }
-.priority-media { /* Amarillo */ }
-.priority-baja { /* Verde */ }
-```
+### Prioridades y Colores
 
-### Tipos de Tarea
-
-```css
-.task-pill.weekly-task {
-  border-left-style: dashed;
-  opacity: 0.85;
-}
-```
+Las tareas pueden tener:
+- **Prioridades**: Alta, Media, Baja (con colores predefinidos)
+- **Colores personalizados**: Selector de color para cada tarea
 
 ---
 
@@ -484,5 +517,57 @@ const MemoizedTaskItem = React.memo(TaskItem);
 
 - Hot reload activado en desarrollo
 - Source maps habilitados para debugging
-- ESLint configurado para React
-- Prettier recomendado para formato de código
+- Material-UI proporciona componentes accesibles por defecto
+- Soporte para tareas periódicas con interfaz intuitiva
+- Aplicación de escritorio disponible con Electron
+
+---
+
+## 🖥️ Aplicación de Escritorio (Electron)
+
+### Características
+- Aplicación nativa para Linux y Windows
+- Servidor Flask integrado (no requiere instalación de Python)
+- Icono personalizado para cada plataforma
+- Instalador configurable (Windows NSIS)
+- Formatos portables (Windows Portable, Linux AppImage)
+- Paquete Pacman para Arch Linux
+
+### Desarrollo
+```bash
+npm run electron-dev
+```
+
+Inicia el servidor de desarrollo React y abre la aplicación Electron.
+
+### Compilación
+
+**Linux:**
+```bash
+npm run dist:linux
+```
+Genera:
+- `Daily-Planner-x.x.x.AppImage`
+- `Daily-Planner-x.x.x.pacman`
+
+**Windows:**
+```bash
+npm run dist:win
+```
+Genera:
+- `Daily-Planner-x.x.x-Setup.exe` (Instalador NSIS)
+- `Daily-Planner-x.x.x.exe` (Portable)
+
+**Ambas:**
+```bash
+npm run dist:all
+```
+
+### Configuración Electron
+
+La configuración se encuentra en `package.json` bajo la sección `build`:
+- **appId**: Identificador de la aplicación
+- **productName**: Nombre del producto
+- **files**: Archivos a incluir
+- **extraResources**: Recursos adicionales (servidor Flask)
+- **linux/win**: Configuración específica por plataforma

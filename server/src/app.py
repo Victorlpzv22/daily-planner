@@ -2,14 +2,42 @@ from flask import Flask
 from flask_cors import CORS
 from database.db import db, init_db
 import os
+import sys
+from pathlib import Path
+
+def get_data_directory():
+    """
+    Get the appropriate data directory for the application based on the OS.
+    Returns a Path object to the data directory.
+    """
+    if sys.platform == 'win32':
+        # Windows: %APPDATA%/daily-planner
+        data_dir = Path(os.environ.get('APPDATA', '~')) / 'daily-planner'
+    elif sys.platform == 'darwin':
+        # macOS: ~/Library/Application Support/daily-planner
+        data_dir = Path.home() / 'Library' / 'Application Support' / 'daily-planner'
+    else:
+        # Linux: ~/.local/share/daily-planner
+        data_dir = Path.home() / '.local' / 'share' / 'daily-planner'
+    
+    # Create directory if it doesn't exist
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
 
 def create_app():
     app = Flask(__name__)
     
+    # Get data directory
+    data_dir = get_data_directory()
+    db_path = data_dir / 'daily_planner.db'
+    
     # Configuración de la base de datos
-    basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "instance", "daily_planner.db")}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    print(f"📁 Data directory: {data_dir}")
+    print(f"🗄️  Database: {db_path}")
+
     
     # Inicializar base de datos
     db.init_app(app)

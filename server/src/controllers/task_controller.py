@@ -2,7 +2,9 @@ from flask import request, jsonify
 from models.task import Task
 from database.db import db
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
+from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH, FR, SA, SU
+import uuid
 
 class TaskController:
     
@@ -91,25 +93,103 @@ class TaskController:
             if color and len(color) not in [4, 7]:  # #RGB o #RRGGBB
                 return jsonify({'error': 'Formato de color inválido. Use #RGB o #RRGGBB'}), 400
             
-            # Crear tarea
-            new_task = Task(
-                titulo=data['titulo'].strip(),
-                descripcion=data.get('descripcion', '').strip() if data.get('descripcion') else None,
-                fecha_inicio=fecha_inicio_obj,
-                fecha_fin=fecha_fin_obj,
-                hora=hora_obj,
-                completada=data.get('completada', False),
-                prioridad=prioridad,
-                tipo=tipo,
-                color=color
-            )
+            # Manejo de recurrencia
+            recurrence = data.get('recurrence')
+            tasks_to_create = []
+            group_id = None
             
-            db.session.add(new_task)
+            if recurrence and recurrence.get('enabled'):
+                group_id = str(uuid.uuid4())
+                
+                freq_map = {
+                    'daily': DAILY,
+                    'weekly': WEEKLY,
+                    'monthly': MONTHLY,
+                    'yearly': YEARLY
+                }
+                
+                freq = freq_map.get(recurrence.get('frequency', 'daily'))
+                interval = int(recurrence.get('interval', 1))
+                
+                # Días de la semana para semanal
+                weekdays = None
+                if recurrence.get('frequency') == 'weekly' and recurrence.get('weekdays'):
+                    day_map = {'MO': MO, 'TU': TU, 'WE': WE, 'TH': TH, 'FR': FR, 'SA': SA, 'SU': SU}
+                    weekdays = [day_map[d] for d in recurrence['weekdays'] if d in day_map]
+                
+                # Fecha fin o conteo
+                until = None
+                count = None
+                
+                if recurrence.get('endType') == 'date' and recurrence.get('endDate'):
+                    try:
+                        until = datetime.strptime(recurrence['endDate'], '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                elif recurrence.get('endType') == 'count' and recurrence.get('count'):
+                    count = int(recurrence['count'])
+                
+                # Generar fechas
+                # Nota: rrule usa datetime, no date
+                start_dt = datetime.combine(fecha_inicio_obj, datetime.min.time())
+                
+                rule_kwargs = {
+                    'freq': freq,
+                    'interval': interval,
+                    'dtstart': start_dt,
+                }
+                
+                if weekdays:
+                    rule_kwargs['byweekday'] = weekdays
+                if until:
+                    rule_kwargs['until'] = datetime.combine(until, datetime.max.time())
+                if count:
+                    rule_kwargs['count'] = count
+                    
+                dates = list(rrule(**rule_kwargs))
+                
+                # Duración de la tarea original
+                duration = (fecha_fin_obj - fecha_inicio_obj).days
+                
+                for dt in dates:
+                    task_start = dt.date()
+                    task_end = task_start + timedelta(days=duration)
+                    
+                    tasks_to_create.append({
+                        'fecha_inicio': task_start,
+                        'fecha_fin': task_end
+                    })
+            else:
+                # Tarea única
+                tasks_to_create.append({
+                    'fecha_inicio': fecha_inicio_obj,
+                    'fecha_fin': fecha_fin_obj
+                })
+            
+            created_tasks = []
+            
+            for task_dates in tasks_to_create:
+                new_task = Task(
+                    titulo=data['titulo'].strip(),
+                    descripcion=data.get('descripcion', '').strip() if data.get('descripcion') else None,
+                    fecha_inicio=task_dates['fecha_inicio'],
+                    fecha_fin=task_dates['fecha_fin'],
+                    hora=hora_obj,
+                    completada=data.get('completada', False),
+                    prioridad=prioridad,
+                    tipo=tipo,
+                    color=color,
+                    group_id=group_id
+                )
+                db.session.add(new_task)
+                created_tasks.append(new_task)
+            
             db.session.commit()
             
             return jsonify({
-                'message': 'Tarea creada exitosamente',
-                'task': new_task.to_dict()
+                'message': f'{len(created_tasks)} tarea(s) creada(s) exitosamente',
+                'task': created_tasks[0].to_dict(),
+                'count': len(created_tasks)
             }), 201
             
         except SQLAlchemyError as e:

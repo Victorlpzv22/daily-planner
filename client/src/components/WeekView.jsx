@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Paper, 
-  Typography, 
+import {
+  Box,
+  Paper,
+  Typography,
   IconButton,
   Chip,
   Divider,
@@ -14,14 +14,14 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import EventIcon from '@mui/icons-material/Event';
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  addDays, 
-  addMonths, 
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  addMonths,
   subMonths,
   startOfDay,
   endOfDay,
@@ -34,9 +34,9 @@ function WeekView({ tasks, onTaskClick }) {
 
   const renderHeader = () => {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         mb: 3,
       }}>
@@ -70,24 +70,24 @@ function WeekView({ tasks, onTaskClick }) {
       const weekTasks = tasks.filter(task => {
         const taskStart = new Date(task.fecha_inicio);
         const taskEnd = new Date(task.fecha_fin);
-        
+
         // Normalizar fechas al inicio del día para comparación correcta
         const normalizedTaskStart = startOfDay(taskStart);
         const normalizedTaskEnd = endOfDay(taskEnd);
         const normalizedWeekStart = startOfDay(weekStart);
         const normalizedWeekEnd = endOfDay(weekEnd);
-        
+
         // Verificar si hay solapamiento con la semana actual
         const hasOverlap = normalizedTaskStart <= normalizedWeekEnd && normalizedTaskEnd >= normalizedWeekStart;
-        
+
         return hasOverlap;
       });
 
       weeks.push(
-        <Paper 
-          key={week.toString()} 
+        <Paper
+          key={week.toString()}
           elevation={2}
-          sx={{ 
+          sx={{
             p: 2,
             transition: 'all 0.2s',
             '&:hover': {
@@ -100,28 +100,28 @@ function WeekView({ tasks, onTaskClick }) {
             <Typography variant="h6" sx={{ fontWeight: 500 }}>
               Semana del {format(weekStart, 'd MMM', { locale: es })} - {format(weekEnd, 'd MMM', { locale: es })}
             </Typography>
-            
+
             {weekTasks.length > 0 && (
-              <Chip 
+              <Chip
                 label={`${weekTasks.length} tarea${weekTasks.length !== 1 ? 's' : ''}`}
                 size="small"
                 sx={{
-                  bgcolor: weekTasks[0]?.color || '#1976d2',
+                  bgcolor: weekTasks[0]?.color || '#6750A4',
                   color: '#fff',
                   fontWeight: 600,
                 }}
               />
             )}
           </Box>
-          
+
           <Divider sx={{ my: 1 }} />
-          
+
           {weekTasks.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
               {weekTasks.map(task => {
                 const isMultiDay = task.fecha_inicio !== task.fecha_fin;
-                const taskColor = task.color || '#1976d2';
-                
+                const taskColor = task.color || '#6750A4';
+
                 // Iconos según el tipo de tarea
                 let icon = null;
                 if (task.tipo === 'semanal') {
@@ -131,7 +131,7 @@ function WeekView({ tasks, onTaskClick }) {
                 } else if (isMultiDay || task.tipo === 'personalizado') {
                   icon = <DateRangeIcon sx={{ fontSize: '1rem', color: taskColor }} />;
                 }
-                
+
                 return (
                   <Paper
                     key={task.id}
@@ -159,40 +159,40 @@ function WeekView({ tasks, onTaskClick }) {
                       ) : (
                         <RadioButtonUncheckedIcon sx={{ fontSize: '1.2rem', color: taskColor }} />
                       )}
-                      
+
                       {/* Icono de tipo */}
                       {icon}
-                      
+
                       {/* Título */}
-                      <Typography 
-                        variant="body1" 
-                        sx={{ 
-                          flex: 1, 
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          flex: 1,
                           fontWeight: 500,
                           color: task.completada ? 'text.secondary' : 'text.primary',
                         }}
                       >
                         {task.titulo}
                       </Typography>
-                      
+
                       {/* Fecha para tareas diarias */}
                       {task.tipo === 'diaria' && (
                         <Typography variant="caption" color="text.secondary">
                           {format(new Date(task.fecha_inicio), 'd MMM', { locale: es })}
                         </Typography>
                       )}
-                      
+
                       {/* Rango de fechas para tareas multi-día */}
                       {isMultiDay && task.tipo !== 'diaria' && (
                         <Typography variant="caption" color="text.secondary">
                           {format(new Date(task.fecha_inicio), 'd MMM', { locale: es })} - {format(new Date(task.fecha_fin), 'd MMM', { locale: es })}
                         </Typography>
                       )}
-                      
+
                       {/* Hora */}
                       {task.hora && (
-                        <Chip 
-                          label={task.hora.substring(0, 5)} 
+                        <Chip
+                          label={task.hora.substring(0, 5)}
                           size="small"
                           variant="outlined"
                           sx={{
@@ -201,7 +201,7 @@ function WeekView({ tasks, onTaskClick }) {
                           }}
                         />
                       )}
-                      
+
                       {/* Tipo de tarea */}
                       <Chip
                         label={task.tipo.toUpperCase()}
@@ -213,7 +213,7 @@ function WeekView({ tasks, onTaskClick }) {
                           fontSize: '0.7rem',
                         }}
                       />
-                      
+
                       {/* Prioridad con color de la tarea */}
                       <Chip
                         label={task.prioridad.toUpperCase()}
@@ -225,14 +225,14 @@ function WeekView({ tasks, onTaskClick }) {
                         }}
                       />
                     </Box>
-                    
+
                     {/* Descripción */}
                     {task.descripcion && (
-                      <Typography 
-                        variant="body2" 
+                      <Typography
+                        variant="body2"
                         color="text.secondary"
-                        sx={{ 
-                          mt: 0.5, 
+                        sx={{
+                          mt: 0.5,
                           ml: icon ? 4.5 : 3.5,
                           fontStyle: 'italic',
                         }}
@@ -245,11 +245,11 @@ function WeekView({ tasks, onTaskClick }) {
               })}
             </Box>
           ) : (
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ 
-                mt: 2, 
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                mt: 2,
                 fontStyle: 'italic',
                 textAlign: 'center',
                 py: 2,
