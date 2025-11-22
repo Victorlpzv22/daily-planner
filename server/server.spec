@@ -33,10 +33,12 @@ a = Analysis(
     datas=[
         # Include all source files as data
         (str(src_dir), 'src'),
+        (str(server_dir / 'migrations'), 'migrations'),
     ],
     hiddenimports=[
         'flask',
         'flask_cors',
+        'flask_migrate',
         'flask_sqlalchemy',
         'sqlalchemy',
         'sqlalchemy.ext.declarative',

@@ -61,7 +61,7 @@ Aplicación web y de escritorio full-stack para gestionar tareas con calendario 
 ### Desktop
 - **Electron 27.1.0** - Framework para aplicaciones de escritorio
 - **Electron Builder 24.9.1** - Empaquetado de aplicaciones
-- Soporte para **Linux** (AppImage, Pacman) y **Windows** (NSIS, Portable)
+- Soporte para **Linux** (AppImage) y **Windows** (NSIS, Portable)
 
 ---
 
@@ -369,39 +369,48 @@ Esto genera `server/dist/daily-planner-server` (~30MB), un ejecutable que incluy
 - Flask y todas las dependencias
 - Código del servidor
 
-**Paso 2: Construir aplicación Electron**
+### Compilar para Distribución
 
-**Linux (AppImage y Pacman):**
+**Script Automatizado (Recomendado):**
+```bash
+./build-all.sh
+```
+Este script compilará el servidor y el cliente para tu plataforma actual.
+
+**Manual - Linux (AppImage):**
 ```bash
 cd client
-npm run build
 npm run dist:linux
 ```
 
-**Windows (NSIS Installer y Portable):**
+**Manual - Windows (NSIS Installer y Portable):**
 ```bash
 cd client
-npm run build
 npm run dist:win
 ```
 
-**Todas las plataformas:**
+**Ambas plataformas:**
 ```bash
 cd client
-npm run build
 npm run dist:all
 ```
 
-Los archivos compilados se guardarán en `client/dist/`:
-- **Linux**: `Daily-Planner-[version].AppImage`, `Daily-Planner-[version].pacman`
-- **Windows**: `Daily-Planner-[version]-Setup.exe`, `Daily-Planner-[version]-portable.exe`
+Los archivos compilados se guardarán en `client/dist/`
 
 ### Características de la App de Escritorio
+- Incluye el servidor Flask integrado
+- No requiere instalación de Python
+- Icono personalizado para cada plataforma
+- Instalador configurable (Windows)
+- **Portable (AppImage)** para Linux: No requiere instalación ni dependencias del sistema
+- Acceso directo en el menú de aplicaciones
 
-✅ **Autocontenida**: No requiere Python instalado  
-✅ **Multiplataforma**: Linux, Windows, macOS  
-✅ **Persistencia**: Datos en ubicación estándar del SO  
-✅ **Instaladores nativos**: NSIS (Windows), AppImage (Linux)  
+### Notas Importantes
+- **Base de Datos en App de Escritorio**: En la versión empaquetada (AppImage/Exe), la base de datos se crea automáticamente en:
+  - Linux: `~/.local/share/daily-planner/`
+  - Windows: `%APPDATA%/daily-planner/`
+- Los datos persisten entre actualizaciones de la aplicación.
+
 ✅ **Portable**: Versiones portables disponibles  
 ✅ **Profesional**: Iconos y metadatos configurados  
 

@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 from database.db import db, init_db
 import os
 import sys
@@ -42,6 +43,9 @@ def create_app():
     # Inicializar base de datos
     db.init_app(app)
     
+    # Inicializar migraciones
+    migrate = Migrate(app, db)
+    
     # Habilitar CORS para todas las rutas
     CORS(app, resources={
         r"/api/*": {
@@ -52,8 +56,8 @@ def create_app():
     })
     
     # Crear tablas si no existen (DENTRO del contexto de la app)
-    with app.app_context():
-        init_db()
+    # with app.app_context():
+    #     init_db()
     
     # Registrar blueprints
     from routes.task_routes import task_bp
