@@ -477,7 +477,22 @@ serve -s build -p 3000
 npm test
 ```
 
-### Estructura de tests
+### Estructura de Tests
+
+El proyecto utiliza **Jest** y **React Testing Library**.
+
+#### 1. TaskForm (`TaskForm.test.js`)
+- Renderizado de campos vacíos y con datos
+- Validación de campos obligatorios (título)
+- Simulación de envío de formulario
+- Toggle de opciones de recurrencia
+- Mock de `LocalizationProvider` para date pickers
+
+#### 2. TaskItem (`TaskItem.test.js`)
+- Renderizado de detalles de tarea
+- Interacción con checkbox (completar)
+- Botones de editar y eliminar
+- Estilos visuales para tareas completadas
 
 ```javascript
 import { render, screen } from '@testing-library/react';

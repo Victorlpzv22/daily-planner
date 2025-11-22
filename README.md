@@ -297,8 +297,26 @@ npm install
 - **Frontend**: Recarga automática al guardar cambios
 
 ### Testing
-- Tests unitarios disponibles en `server/tests/`
-- Ejecutar tests: `python -m pytest server/tests/`
+El proyecto cuenta con una suite de pruebas completa:
+
+- **Backend (Pytest)**:
+  - `test_models.py`: Validación de modelos y base de datos
+  - `test_routes.py`: Pruebas de integración de endpoints API
+  - `test_periodic_tasks.py`: Lógica de recurrencia compleja
+  
+- **Frontend (Jest + React Testing Library)**:
+  - `TaskForm.test.js`: Validación de formularios y envío de datos
+  - `TaskItem.test.js`: Renderizado y acciones de usuario
+  - Pruebas de componentes y hooks
+
+Para ejecutar todos los tests:
+```bash
+# Backend
+cd server && python -m pytest
+
+# Frontend
+cd client && npm test
+```
 
 ---
 

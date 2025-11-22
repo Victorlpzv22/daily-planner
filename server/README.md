@@ -358,11 +358,25 @@ python -m pytest tests/test_periodic_tasks.py
 ```
 
 ### Tests Disponibles
-- `test_periodic_tasks.py`: Tests para tareas periódicas
-  - Creación de tareas diarias recurrentes
-  - Creación de tareas semanales con días específicos
-  - Validación de fechas generadas
-  - Verificación de group_id
+
+#### 1. Tareas Periódicas (`test_periodic_tasks.py`)
+- Creación de tareas diarias recurrentes
+- Creación de tareas semanales con días específicos
+- Validación de fechas generadas y `group_id`
+
+#### 2. Rutas API (`test_routes.py`)
+- `GET /tasks/`: Listado de tareas (vacío y con datos)
+- `POST /tasks/`: Creación de tareas y validación de respuesta
+- `GET /tasks/<id>`: Obtención de tarea individual
+- `PUT /tasks/<id>`: Actualización de campos
+- `DELETE /tasks/<id>`: Eliminación y verificación
+- `PATCH /tasks/<id>/toggle`: Cambio de estado completado
+
+#### 3. Modelos (`test_models.py`)
+- Creación de tareas con campos obligatorios
+- Validación de valores por defecto (prioridad, color, tipo)
+- Serialización `to_dict()`
+- Persistencia en base de datos
 
 ---
 
