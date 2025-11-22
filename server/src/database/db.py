@@ -8,6 +8,8 @@ db = SQLAlchemy()
 
 def init_db():
     """Inicializar la base de datos y crear tablas si no existen"""
+    # Importar modelos aquí para asegurar que SQLAlchemy los reconozca
+    from models.task import Task
     db.create_all()
     print("✓ Conectado a SQLite: daily_planner.db")
     

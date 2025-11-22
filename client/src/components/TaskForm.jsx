@@ -20,17 +20,22 @@ import {
   Divider,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
-import 'dayjs/locale/es';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import {
+  startOfWeek,
+  endOfWeek,
+  format,
+  addMonths,
+  isBefore,
+  parseISO,
+  isValid
+} from 'date-fns';
+import { es } from 'date-fns/locale';
 import EventIcon from '@mui/icons-material/Event';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import PaletteIcon from '@mui/icons-material/Palette';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { startOfWeek, endOfWeek } from 'date-fns';
-
-dayjs.locale('es');
 
 // Colores predefinidos
 const PRESET_COLORS = [
@@ -55,8 +60,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    fecha_inicio: dayjs(),
-    fecha_fin: dayjs(),
+    fecha_inicio: new Date(),
+    fecha_fin: new Date(),
     hora: null,
     prioridad: 'media',
     tipo: 'diaria',
@@ -71,7 +76,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
     interval: 1,
     weekdays: [],
     endType: 'date',
-    endDate: dayjs().add(1, 'month'),
+    endDate: addMonths(new Date(), 1),
     count: 10
   });
 
@@ -80,15 +85,13 @@ function TaskForm({ task, onSubmit, onCancel }) {
       setFormData({
         titulo: task.titulo || '',
         descripcion: task.descripcion || '',
-        fecha_inicio: task.fecha_inicio ? dayjs(task.fecha_inicio) : dayjs(),
-        fecha_fin: task.fecha_fin ? dayjs(task.fecha_fin) : dayjs(),
-        hora: task.hora ? dayjs(`2000-01-01 ${task.hora}`) : null,
+        fecha_inicio: task.fecha_inicio ? parseISO(task.fecha_inicio) : new Date(),
+        fecha_fin: task.fecha_fin ? parseISO(task.fecha_fin) : new Date(),
+        hora: task.hora ? parseISO(`2000-01-01T${task.hora}`) : null,
         prioridad: task.prioridad || 'media',
         tipo: task.tipo || 'diaria',
         color: task.color || '#1976d2',
       });
-      // Note: Recurrence editing is not supported for individual tasks in this version
-      // Ideally we would load recurrence settings if we were editing a series
     }
   }, [task]);
 
@@ -105,14 +108,13 @@ function TaskForm({ task, onSubmit, onCancel }) {
         fecha_fin: newFechaFin,
       });
     } else if (newTipo === 'semanal') {
-      const fechaInicioDate = formData.fecha_inicio.toDate();
-      const weekStart = startOfWeek(fechaInicioDate, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(fechaInicioDate, { weekStartsOn: 1 });
+      const weekStart = startOfWeek(formData.fecha_inicio, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(formData.fecha_inicio, { weekStartsOn: 1 });
       setFormData({
         ...formData,
         tipo: newTipo,
-        fecha_inicio: dayjs(weekStart),
-        fecha_fin: dayjs(weekEnd),
+        fecha_inicio: weekStart,
+        fecha_fin: weekEnd,
       });
     } else {
       setFormData({ ...formData, tipo: newTipo, fecha_fin: newFechaFin });
@@ -126,16 +128,16 @@ function TaskForm({ task, onSubmit, onCancel }) {
       newErrors.titulo = 'El título es obligatorio';
     }
 
-    if (!formData.fecha_inicio) {
+    if (!formData.fecha_inicio || !isValid(formData.fecha_inicio)) {
       newErrors.fecha_inicio = 'La fecha de inicio es obligatoria';
     }
 
-    if (!formData.fecha_fin) {
+    if (!formData.fecha_fin || !isValid(formData.fecha_fin)) {
       newErrors.fecha_fin = 'La fecha de fin es obligatoria';
     }
 
     if (formData.fecha_fin && formData.fecha_inicio &&
-      formData.fecha_fin.isBefore(formData.fecha_inicio)) {
+      isBefore(formData.fecha_fin, formData.fecha_inicio)) {
       newErrors.fecha_fin = 'La fecha de fin debe ser posterior o igual a la de inicio';
     }
 
@@ -151,9 +153,9 @@ function TaskForm({ task, onSubmit, onCancel }) {
     const dataToSubmit = {
       titulo: formData.titulo,
       descripcion: formData.descripcion,
-      fecha_inicio: formData.fecha_inicio.format('YYYY-MM-DD'),
-      fecha_fin: formData.fecha_fin.format('YYYY-MM-DD'),
-      hora: formData.hora ? formData.hora.format('HH:mm:ss') : null,
+      fecha_inicio: format(formData.fecha_inicio, 'yyyy-MM-dd'),
+      fecha_fin: format(formData.fecha_fin, 'yyyy-MM-dd'),
+      hora: formData.hora ? format(formData.hora, 'HH:mm:ss') : null,
       prioridad: formData.prioridad,
       tipo: formData.tipo,
       color: formData.color,
@@ -163,7 +165,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
         interval: recurrence.interval,
         weekdays: recurrence.weekdays,
         endType: recurrence.endType,
-        endDate: recurrence.endDate ? recurrence.endDate.format('YYYY-MM-DD') : null,
+        endDate: recurrence.endDate ? format(recurrence.endDate, 'yyyy-MM-dd') : null,
         count: recurrence.count
       } : null
     };
@@ -179,16 +181,17 @@ function TaskForm({ task, onSubmit, onCancel }) {
   };
 
   const handleFechaInicioChange = (newValue) => {
+    if (!newValue || !isValid(newValue)) return;
+
     if (formData.tipo === 'diaria') {
       setFormData({ ...formData, fecha_inicio: newValue, fecha_fin: newValue });
     } else if (formData.tipo === 'semanal') {
-      const fechaDate = newValue.toDate();
-      const weekStart = startOfWeek(fechaDate, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(fechaDate, { weekStartsOn: 1 });
+      const weekStart = startOfWeek(newValue, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(newValue, { weekStartsOn: 1 });
       setFormData({
         ...formData,
-        fecha_inicio: dayjs(weekStart),
-        fecha_fin: dayjs(weekEnd),
+        fecha_inicio: weekStart,
+        fecha_fin: weekEnd,
       });
     } else {
       setFormData({ ...formData, fecha_inicio: newValue });
@@ -285,19 +288,20 @@ function TaskForm({ task, onSubmit, onCancel }) {
             </Alert>
           )}
 
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
             <DatePicker
               label="Fecha de Inicio"
               value={formData.fecha_inicio}
               onChange={handleFechaInicioChange}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  required: true,
-                  error: !!errors.fecha_inicio,
-                  helperText: errors.fecha_inicio,
-                },
-              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  required
+                  error={!!errors.fecha_inicio}
+                  helperText={errors.fecha_inicio}
+                />
+              )}
             />
 
             <DatePicker
@@ -306,26 +310,23 @@ function TaskForm({ task, onSubmit, onCancel }) {
               onChange={(newValue) => setFormData({ ...formData, fecha_fin: newValue })}
               disabled={formData.tipo === 'diaria' || formData.tipo === 'semanal'}
               minDate={formData.fecha_inicio}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                  required: true,
-                  error: !!errors.fecha_fin,
-                  helperText: errors.fecha_fin ||
-                    (formData.tipo !== 'personalizado' ? 'Automático según el tipo' : 'Debe ser igual o posterior a la fecha de inicio'),
-                },
-              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  required
+                  error={!!errors.fecha_fin}
+                  helperText={errors.fecha_fin ||
+                    (formData.tipo !== 'personalizado' ? 'Automático según el tipo' : 'Debe ser igual o posterior a la fecha de inicio')}
+                />
+              )}
             />
 
             <TimePicker
               label="Hora (opcional)"
               value={formData.hora}
               onChange={(newValue) => setFormData({ ...formData, hora: newValue })}
-              slotProps={{
-                textField: {
-                  fullWidth: true,
-                },
-              }}
+              renderInput={(params) => <TextField {...params} fullWidth />}
             />
           </LocalizationProvider>
 
@@ -437,12 +438,12 @@ function TaskForm({ task, onSubmit, onCancel }) {
                         >
                           En fecha específica
                         </Typography>
-                        <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                           <DatePicker
                             value={recurrence.endDate}
                             onChange={(newValue) => setRecurrence({ ...recurrence, endDate: newValue })}
                             disabled={recurrence.endType !== 'date'}
-                            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                            renderInput={(params) => <TextField {...params} size="small" sx={{ width: 160 }} />}
                           />
                         </LocalizationProvider>
                       </Box>

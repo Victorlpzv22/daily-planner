@@ -50,12 +50,6 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "pacman",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "category": "Office",
@@ -102,17 +96,19 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.16",
     "@mui/material": "^5.14.17",
+    "@mui/x-date-pickers": "5.0.20",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
+    "electron-is-dev": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^27.1.0",
     "electron-builder": "^24.9.1",
-    "electron-is-dev": "^2.0.0",
     "wait-on": "^7.2.0"
   },
   "eslintConfig": {
