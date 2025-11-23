@@ -46,8 +46,12 @@ def main():
     print("-" * 60)
     
     try:
+        # Use sys.executable to ensure we use the same python environment (venv)
+        cmd = [sys.executable, '-m', 'PyInstaller', '--clean', str(spec_file)]
+        print(f"   Command: {' '.join(cmd)}")
+        
         result = subprocess.run(
-            ['pyinstaller', '--clean', str(spec_file)],
+            cmd,
             cwd=server_dir,
             check=True,
             capture_output=False

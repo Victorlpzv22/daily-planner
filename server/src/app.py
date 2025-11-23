@@ -37,8 +37,8 @@ def create_app(test_config=None):
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         
-        print(f"📁 Data directory: {data_dir}")
-        print(f"🗄️  Database: {db_path}")
+        print(f"[DATA] Data directory: {data_dir}")
+        print(f"[DB] Database: {db_path}")
     else:
         # Load test config
         app.config.update(test_config)
@@ -96,8 +96,8 @@ def create_app(test_config=None):
 if __name__ == '__main__':
     app = create_app()
     print("\n" + "="*50)
-    print("✅ Servidor iniciado en http://127.0.0.1:5000")
-    print("📡 CORS habilitado para http://localhost:3000")
-    print("🔍 Health check: http://127.0.0.1:5000/api/health")
+    print("[OK] Servidor iniciado en http://127.0.0.1:5000")
+    print("[CORS] CORS habilitado para http://localhost:3000")
+    print("[HEALTH] Health check: http://127.0.0.1:5000/api/health")
     print("="*50 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5000)

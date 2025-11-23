@@ -3,15 +3,54 @@ const path = require('path');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
 const net = require('net');
+const fs = require('fs');
+const os = require('os');
 
 let mainWindow;
 let flaskProcess;
+
+// Configurar logging
+const logFile = path.join(app.getPath('userData'), 'main.log');
+
+function logToFile(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} - ${message}\n`;
+  try {
+    fs.appendFileSync(logFile, logMessage);
+  } catch (err) {
+    // Fallback si falla el log
+    console.error('Error writing to log file:', err);
+  }
+}
+
+// Sobrescribir console.log y console.error para que también escriban en el archivo
+const originalLog = console.log;
+const originalError = console.error;
+
+console.log = function (...args) {
+  originalLog(...args);
+  logToFile(`INFO: ${args.join(' ')}`);
+};
+
+console.error = function (...args) {
+  originalError(...args);
+  logToFile(`ERROR: ${args.join(' ')}`);
+};
+
+// Log inicial
+logToFile('----------------------------------------');
+logToFile(`App starting. Platform: ${process.platform}, Arch: ${process.arch}`);
+logToFile(`User Data Path: ${app.getPath('userData')}`);
+logToFile(`Resources Path: ${process.resourcesPath}`);
 
 // Verificar si el puerto está disponible
 function checkPort(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once('error', () => resolve(false));
+    server.once('error', (err) => {
+      console.log(`Port ${port} check error: ${err.message}`);
+      resolve(false);
+    });
     server.once('listening', () => {
       server.close();
       resolve(true);
@@ -65,6 +104,7 @@ function createWindow() {
     ? 'http://localhost:3000'
     : `file://${path.join(__dirname, '../build/index.html')}`;
 
+  console.log(`Loading URL: ${startUrl}`);
   mainWindow.loadURL(startUrl);
 
   if (isDev) {
@@ -86,7 +126,6 @@ async function startFlaskServer() {
     return;
   }
 
-  const fs = require('fs');
   let serverExecutable;
 
   if (isDev) {
@@ -140,16 +179,28 @@ async function startFlaskServer() {
     );
 
     console.log('📂 Buscando ejecutable del servidor...');
-    console.log('📄 Ruta esperada:', serverExecutable);
+    console.log(`📄 Ruta esperada: ${serverExecutable}`);
 
     if (!fs.existsSync(serverExecutable)) {
-      console.error('❌ Ejecutable del servidor no encontrado:', serverExecutable);
-      console.error('📂 Contenido de resources:', process.resourcesPath);
+      console.error(`❌ Ejecutable del servidor no encontrado: ${serverExecutable}`);
+      console.error(`📂 Contenido de resources: ${process.resourcesPath}`);
       try {
         const resourcesContent = fs.readdirSync(process.resourcesPath);
-        console.log('   Archivos/directorios:', resourcesContent);
+        console.log(`   Archivos/directorios: ${JSON.stringify(resourcesContent)}`);
+
+        // Check server/dist content if server dir exists
+        const serverDir = path.join(process.resourcesPath, 'server');
+        if (fs.existsSync(serverDir)) {
+          const serverContent = fs.readdirSync(serverDir);
+          console.log(`   Contenido de server: ${JSON.stringify(serverContent)}`);
+          const distDir = path.join(serverDir, 'dist');
+          if (fs.existsSync(distDir)) {
+            const distContent = fs.readdirSync(distDir);
+            console.log(`   Contenido de server/dist: ${JSON.stringify(distContent)}`);
+          }
+        }
       } catch (err) {
-        console.error('   No se pudo leer el directorio:', err.message);
+        console.error(`   No se pudo leer el directorio: ${err.message}`);
       }
       return;
     }
@@ -159,15 +210,21 @@ async function startFlaskServer() {
       try {
         fs.chmodSync(serverExecutable, 0o755);
       } catch (err) {
-        console.warn('⚠️  No se pudo cambiar permisos del ejecutable:', err.message);
+        console.warn(`⚠️  No se pudo cambiar permisos del ejecutable: ${err.message}`);
       }
     }
 
     console.log('✅ Iniciando servidor desde ejecutable (modo producción)');
 
-    flaskProcess = spawn(serverExecutable, [], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    try {
+      flaskProcess = spawn(serverExecutable, [], {
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      console.log(`Spawned process with PID: ${flaskProcess.pid}`);
+    } catch (spawnErr) {
+      console.error(`❌ Error spawning process: ${spawnErr.message}`);
+      return;
+    }
   }
 
   flaskProcess.stdout.on('data', (data) => {
@@ -200,7 +257,11 @@ async function startFlaskServer() {
 app.on('ready', async () => {
   console.log('🎬 Electron iniciado en modo:', isDev ? 'desarrollo' : 'producción');
 
-  await startFlaskServer();
+  try {
+    await startFlaskServer();
+  } catch (err) {
+    console.error('FATAL: Error starting server:', err);
+  }
   createWindow();
 });
 

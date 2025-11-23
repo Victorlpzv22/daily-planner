@@ -63,6 +63,7 @@ a = Analysis(
         'controllers.task_controller',
         'utils',
         'utils.recurrence',
+        'logging.config',
     ],
     hookspath=[],
     hooksconfig={},
