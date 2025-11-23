@@ -87,7 +87,37 @@ echo.
 echo ▶ Packaging with Electron Builder...
 echo.
 
-call npm run dist:win
+REM Limpiar archivos de distribución anterior si existen
+if exist "dist" (
+    echo   Cleaning previous build artifacts...
+    rmdir /s /q dist 2>nul
+)
+
+REM Ejecutar electron-builder directamente con opciones para Windows
+echo   Running electron-builder for Windows...
+call npx electron-builder --win --publish=never
+
+if !errorlevel! neq 0 (
+    echo ❌ Electron Builder failed!
+    pause
+    exit /b 1
+)
+
+echo   ✓ Application packaged successfully
+echo.
+
+:: Paso 7: Verificar archivos generados
+echo ▶ Verifying build artifacts...
+
+if exist "dist\*.exe" (
+    for %%F in (dist\*.exe) do (
+        echo   ✓ Found executable: %%~nxF
+    )
+) else (
+    echo ❌ No executable found in dist directory!
+    pause
+    exit /b 1
+)
 
 echo.
 echo ==========================================
@@ -96,5 +126,10 @@ echo ==========================================
 echo.
 echo 📦 Distributable packages created in:
 echo    %CLIENT_DIR%\dist\
+echo.
+echo 📋 Build Summary:
+echo    - Server: Compiled with PyInstaller
+echo    - Client: Built React app
+echo    - Packager: Electron Builder (Windows)
 echo.
 pause
