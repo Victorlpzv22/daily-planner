@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Daily Planner",
+  "name": "Daily Planner - Organiza tus tareas",
   "icons": [
     {
       "src": "favicon.ico",

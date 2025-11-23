@@ -12,8 +12,9 @@ Interfaz de usuario moderna y responsiva para la aplicación Daily Planner con M
 - **@emotion/styled 11.11.0** - Styled components
 - **Material Icons 5.14.16** - Iconos Material Design
 - **React Scripts 5.0.1** - Herramientas de desarrollo
-- **Axios 1.6.2** - Cliente HTTP
+- **Axios 0.27.2** - Cliente HTTP
 - **date-fns 2.30.0** - Manejo de fechas
+- **MUI X Date Pickers 5.0.20** - Selectores de fecha
 - **Electron 27.1.0** - Framework para aplicaciones de escritorio
 - **Electron Builder 24.9.1** - Empaquetado de aplicaciones
 

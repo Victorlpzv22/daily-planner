@@ -1,6 +1,13 @@
 # Guía de Lanzamiento de Versiones (Release Guide)
 
-Esta guía explica cómo generar una nueva versión de la aplicación (ej. 1.0.0 -> 1.0.1) manteniendo el historial.
+Esta guía explica cómo generar una nueva versión de la aplicación Daily Planner manteniendo el historial de cambios.
+
+## 📋 Versionado Semántico
+
+El proyecto sigue [Semantic Versioning](https://semver.org/):
+- **MAJOR** (1.x.x): Cambios incompatibles con versiones anteriores
+- **MINOR** (x.1.x): Nueva funcionalidad compatible con versiones anteriores
+- **PATCH** (x.x.1): Correcciones de bugs compatibles
 
 ## 1. Actualizar Versión
 
@@ -8,7 +15,7 @@ El "source of truth" de la versión es el archivo `client/package.json`.
 
 1. Abre `client/package.json`
 2. Busca la línea `"version": "1.0.0"`
-3. Cámbiala a la nueva versión, ej: `"version": "1.0.1"`
+3. Cámbiala a la nueva versión, ej: `"version": "1.0.1"` o `"version": "1.1.0"`
 
 ```json
 {
@@ -18,12 +25,13 @@ El "source of truth" de la versión es el archivo `client/package.json`.
 }
 ```
 
+**Nota:** Electron Builder utilizará automáticamente esta versión para nombrar los archivos de distribución.
+
 ## 2. Ejecutar Tests
 
 Antes de generar una release, asegúrate de que todos los tests pasen:
 
 ```bash
-# Backend
 cd server && python -m pytest
 
 # Frontend
@@ -39,6 +47,27 @@ git add client/package.json
 git commit -m "chore: bump version to 1.0.1"
 git tag v1.0.1
 git push origin main --tags
+```
+
+### Documentar Cambios (Recomendado)
+
+Es una buena práctica mantener un archivo `CHANGELOG.md` con los cambios de cada versión:
+
+```markdown
+# Changelog
+
+## [1.0.1] - 2025-11-23
+
+### Añadido
+- Nueva funcionalidad X
+- Soporte para Y
+
+### Corregido
+- Bug en componente Z
+- Error al guardar tareas
+
+### Cambiado
+- Mejorado rendimiento del calendario
 ```
 
 ## 4. Generar el Build
@@ -67,13 +96,15 @@ Electron Builder incluirá automáticamente el número de versión en el nombre 
 En la carpeta `client/dist/` tendrás:
 
 **Linux:**
-- `Daily Planner-1.0.1.AppImage` - Ejecutable portable para Linux
+- `Daily Planner-1.0.1.AppImage` - Ejecutable portable para Linux (no requiere instalación)
 - `latest-linux.yml` - Metadata para auto-actualización
 
 **Windows:**
-- `Daily Planner-1.0.1-Setup.exe` - Instalador NSIS
-- `Daily Planner-1.0.1.exe` - Versión portable
+- `Daily Planner-1.0.1-Setup.exe` - Instalador NSIS con asistente de instalación
+- `Daily Planner-1.0.1.exe` - Versión portable (ejecutable único)
 - `latest.yml` - Metadata para auto-actualización
+
+**Nota:** Los archivos `.yml` contienen información sobre la versión y checksums para el sistema de auto-actualización.
 
 ## 6. Limpieza (Opcional)
 
@@ -91,12 +122,20 @@ rm -rf server/dist/*
 
 ### AppImage (Linux)
 El AppImage es portable y no requiere instalación:
-- **Ventajas**: Sin dependencias del sistema, funciona en cualquier distribución
-- **Uso**: `chmod +x "Daily Planner-1.0.1.AppImage" && ./Daily\ Planner-1.0.1.AppImage`
+- **Ventajas**: 
+  - Sin dependencias del sistema
+  - Funciona en cualquier distribución Linux moderna
+  - No requiere permisos de administrador
+  - Ejecutable único y autocontenido
+- **Uso**: 
+  ```bash
+  chmod +x "Daily Planner-1.0.1.AppImage"
+  ./Daily\ Planner-1.0.1.AppImage
+  ```
 
 ### Windows
-- **Instalador NSIS**: Para instalación tradicional con acceso directo
-- **Portable**: Ejecutable único sin instalación
+- **Instalador NSIS**: Instalación tradicional con asistente, acceso directo en menú inicio y escritorio
+- **Portable**: Ejecutable único sin instalación, ideal para USB o ejecución sin permisos de administrador
 
 ## Notas Importantes
 

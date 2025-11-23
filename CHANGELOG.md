@@ -1,0 +1,77 @@
+# Changelog
+
+Todos los cambios notables en este proyecto serán documentados en este archivo.
+
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
+y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
+
+## [1.0.0] - 2025-11-23
+
+### Añadido
+- ✅ Aplicación web completa con React 18 y Material-UI 5
+- ✅ Backend REST API con Flask 3.0 y SQLAlchemy 2.0
+- ✅ Gestión completa de tareas (crear, editar, eliminar, completar)
+- ✅ Sistema de prioridades (Alta, Media, Baja)
+- ✅ Tipos de tareas: Diarias y Semanales
+- ✅ **Tareas Periódicas** con configuración avanzada:
+  - Frecuencias: Diaria, Semanal, Mensual, Anual
+  - Intervalos personalizables
+  - Selección de días de la semana
+  - Finalización por fecha o número de ocurrencias
+- ✅ Colores personalizables para cada tarea
+- ✅ Tres vistas de visualización:
+  - Vista Lista con filtros
+  - Vista Calendario Mensual (Días)
+  - Vista Calendario Mensual (Semanas)
+- ✅ **Aplicación de Escritorio** con Electron:
+  - Soporte para Linux (AppImage)
+  - Soporte para Windows (NSIS Installer y Portable)
+  - Servidor Flask integrado (no requiere Python instalado)
+  - Base de datos SQLite en ubicación estándar del sistema
+- ✅ Suite completa de tests:
+  - Tests unitarios del backend con Pytest
+  - Tests de componentes React con Jest y React Testing Library
+- ✅ Scripts de build automatizados (`build-all.sh` y `build-all.bat`)
+- ✅ Documentación completa en español
+- ✅ Material Design 3 con tema personalizado
+- ✅ Interfaz responsiva y accesible
+
+### Tecnologías
+- **Frontend**: React 18.2.0, Material-UI 5.14.17, Axios 0.27.2, date-fns 2.30.0
+- **Backend**: Flask 3.0.0, SQLAlchemy 2.0.44, python-dateutil 2.8.2
+- **Desktop**: Electron 27.1.0, Electron Builder 24.9.1
+- **Database**: SQLite
+- **Testing**: Pytest (backend), Jest + React Testing Library (frontend)
+
+### Características Destacadas
+- 🎨 Diseño moderno con Material Design 3
+- 📅 Calendario interactivo con múltiples vistas
+- 🔄 Soporte completo para tareas recurrentes
+- 🖥️ Aplicación de escritorio multiplataforma
+- 🧪 Cobertura de tests completa
+- 📦 Build automatizado para distribución
+- 🌐 API REST bien documentada
+
+---
+
+## Formato de Versiones Futuras
+
+### [X.Y.Z] - YYYY-MM-DD
+
+#### Añadido
+- Nuevas características
+
+#### Cambiado
+- Cambios en funcionalidad existente
+
+#### Obsoleto
+- Características que serán removidas
+
+#### Eliminado
+- Características eliminadas
+
+#### Corregido
+- Corrección de bugs
+
+#### Seguridad
+- Correcciones de vulnerabilidades

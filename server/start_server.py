@@ -37,7 +37,14 @@ if __name__ == '__main__':
     print("[DB] Verificando base de datos...")
     
     # Check if migrations directory exists
-    migrations_dir = os.path.join(application_path, 'migrations')
+    # In frozen executables, migrations are in sys._MEIPASS
+    if getattr(sys, 'frozen', False):
+        migrations_dir = os.path.join(sys._MEIPASS, 'migrations')
+    else:
+        migrations_dir = os.path.join(application_path, 'migrations')
+    
+    print(f"[DEBUG] Buscando migraciones en: {migrations_dir}")
+    
     if not os.path.exists(migrations_dir):
         print(f"[WARN] Directorio de migraciones no encontrado en: {migrations_dir}")
         print("[DB] Inicializando base de datos directamente (db.create_all)...")

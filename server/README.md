@@ -10,8 +10,10 @@ Backend en Flask para la aplicación Daily Planner con soporte para tareas peri�
 - **Flask 3.0.0** - Framework web
 - **Flask-CORS 4.0.0** - Manejo de CORS
 - **Flask-SQLAlchemy 3.1.1** - Integración Flask-SQLAlchemy
+- **Flask-Migrate 4.0.7** - Migraciones de base de datos
 - **SQLAlchemy 2.0.44** - ORM
 - **python-dateutil 2.8.2** - Manejo de fechas y recurrencias
+- **PyInstaller 6.10.0+** - Empaquetado como ejecutable
 - **SQLite** - Base de datos
 
 ---
@@ -456,14 +458,24 @@ curl -X DELETE http://localhost:5000/api/tasks/group/abc-123-def
 Ver `requirements.txt`:
 
 ```
+blinker==1.9.0
+click==8.3.0
 Flask==3.0.0
-Flask-CORS==4.0.0
+Flask-Cors==4.0.0
+Flask-Migrate==4.0.7
 Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.0.44
-python-dateutil==2.8.2
-python-dotenv==1.0.0
+greenlet==3.2.4
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
 psycopg==3.2.12
 psycopg-binary==3.2.12
+python-dotenv==1.0.0
+SQLAlchemy==2.0.44
+typing_extensions==4.15.0
+Werkzeug==3.1.3
+python-dateutil==2.8.2
+pyinstaller>=6.10.0
 ```
 
 ### Instalar dependencia adicional

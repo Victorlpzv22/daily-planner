@@ -46,17 +46,19 @@ Aplicación web y de escritorio full-stack para gestionar tareas con calendario 
 - **SQLAlchemy 2.0.44** - ORM para base de datos
 - **Flask-CORS 4.0.0** - Manejo de CORS
 - **Flask-SQLAlchemy 3.1.1** - Integración Flask-SQLAlchemy
+- **Flask-Migrate 4.0.7** - Migraciones de base de datos
 - **python-dateutil 2.8.2** - Manejo avanzado de fechas y recurrencias
-- **PyInstaller 6.16+** - Empaquetado del servidor como ejecutable
+- **PyInstaller 6.10.0+** - Empaquetado del servidor como ejecutable
 - **SQLite** - Base de datos
 
 ### Frontend
 - **React 18.2.0** - Biblioteca UI
 - **Material-UI 5.14.17** - Sistema de diseño Material Design 3
-- **Emotion** - CSS-in-JS para estilos
-- **Axios 1.6.2** - Cliente HTTP
+- **Emotion 11.11.x** - CSS-in-JS para estilos
+- **Axios 0.27.2** - Cliente HTTP
 - **date-fns 2.30.0** - Manejo de fechas
 - **React Scripts 5.0.1** - Herramientas de desarrollo
+- **MUI X Date Pickers 5.0.20** - Selectores de fecha Material-UI
 
 ### Desktop
 - **Electron 27.1.0** - Framework para aplicaciones de escritorio
@@ -297,26 +299,33 @@ npm install
 - **Frontend**: Recarga automática al guardar cambios
 
 ### Testing
-El proyecto cuenta con una suite de pruebas completa:
+El proyecto cuenta con una suite de pruebas completa para garantizar la calidad del código:
 
 - **Backend (Pytest)**:
-  - `test_models.py`: Validación de modelos y base de datos
-  - `test_routes.py`: Pruebas de integración de endpoints API
-  - `test_periodic_tasks.py`: Lógica de recurrencia compleja
+  - `test_models.py`: Validación de modelos SQLAlchemy y persistencia en base de datos
+  - `test_routes.py`: Pruebas de integración de todos los endpoints API REST
+  - `test_periodic_tasks.py`: Lógica de recurrencia y generación de tareas periódicas
   
 - **Frontend (Jest + React Testing Library)**:
-  - `TaskForm.test.js`: Validación de formularios y envío de datos
-  - `TaskItem.test.js`: Renderizado y acciones de usuario
-  - Pruebas de componentes y hooks
+  - `TaskForm.test.js`: Validación de formularios, campos obligatorios y envío de datos
+  - `TaskItem.test.js`: Renderizado de componentes y acciones de usuario (completar, editar, eliminar)
+  - Pruebas de componentes React y hooks personalizados
 
 Para ejecutar todos los tests:
 ```bash
-# Backend
-cd server && python -m pytest
+# Backend (con reporte detallado)
+cd server && python -m pytest -v
 
-# Frontend
+# Frontend (modo interactivo)
 cd client && npm test
+
+# Frontend (ejecución única para CI/CD)
+cd client && npm test -- --watchAll=false
 ```
+
+**Cobertura de tests:**
+- Backend: Modelos, controladores, rutas y utilidades
+- Frontend: Componentes principales y lógica de negocio
 
 ---
 
