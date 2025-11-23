@@ -1,0 +1,107 @@
+# ===========================
+# Variables de entorno y secretos
+# ===========================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+config/secrets.json
+
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.spec.bak
+
+# PyInstaller
+server/dist/
+server/build/
+*.spec.bak
+
+
+# ===========================
+# Base de datos
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
+daily_planner.db
+instance/
+data/
+*.sql
+*.dump
+
+# ===========================
+# IDE y editores
+# ===========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# ===========================
+# Logs y archivos temporales
+# ===========================
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# ===========================
+# Docker
+# ===========================
+docker-compose.override.yml
+*.dockerignore
+
+# ===========================
+# Sistema operativo
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===========================
+# Backups y archivos personales
+# ===========================
+*.backup
+*.old
+TODO.txt
+NOTES.txt
+personal/

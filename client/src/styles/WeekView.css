@@ -1,0 +1,164 @@
+.week-view {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.weeks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.week-row:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
+}
+
+.week-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.week-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.week-dates {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.week-tasks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.no-tasks {
+  color: #9ca3af;
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.week-task-card {
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 4px solid;
+}
+
+.week-task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.week-task-card.priority-alta {
+  background: #fee2e2;
+  border-left-color: #ef4444;
+}
+
+.week-task-card.priority-media {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+}
+
+.week-task-card.priority-baja {
+  background: #d1fae5;
+  border-left-color: #10b981;
+}
+
+.week-task-card.completed {
+  opacity: 0.6;
+}
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-card-header h4 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.week-task-card.completed h4 {
+  text-decoration: line-through;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.badge-alta {
+  background: #991b1b;
+  color: white;
+}
+
+.badge-media {
+  background: #92400e;
+  color: white;
+}
+
+.badge-baja {
+  background: #065f46;
+  color: white;
+}
+
+.task-card-description {
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
+.task-card-meta {
+  display: flex;
+  gap: 1rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 1024px) {
+  .week-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .week-tasks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .week-row {
+    padding: 1rem;
+  }
+}
