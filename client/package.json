@@ -24,11 +24,15 @@
     "appId": "com.dailyplanner.app",
     "productName": "Daily Planner",
     "copyright": "Copyright © 2024 Victor",
+    "asar": true,
     "files": [
       "build/**/*",
       "public/electron.js",
       "public/icon.png",
-      "public/icon.ico"
+      "public/icon.ico",
+      "node_modules/electron-updater/**/*",
+      "node_modules/lazy-val/**/*",
+      "node_modules/semver/**/*"
     ],
     "extraResources": [
       {
