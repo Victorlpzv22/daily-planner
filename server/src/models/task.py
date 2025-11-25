@@ -18,6 +18,8 @@ class Task(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    subtasks = db.relationship('Subtask', backref='task', lazy=True, cascade="all, delete-orphan")
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -31,4 +33,5 @@ class Task(db.Model):
             'tipo': self.tipo,
             'color': self.color,
             'group_id': self.group_id,
+            'subtasks': [subtask.to_dict() for subtask in self.subtasks]
         }

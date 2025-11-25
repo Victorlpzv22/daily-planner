@@ -17,6 +17,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import EventIcon from '@mui/icons-material/Event';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 function TaskItem({ task, onToggle, onEdit, onDelete }) {
   const formatDate = (dateString) => {
@@ -153,6 +154,19 @@ function TaskItem({ task, onToggle, onEdit, onDelete }) {
                   color: '#fff',
                 }}
               />
+
+              {task.subtasks && task.subtasks.length > 0 && (
+                <Chip
+                  icon={<ListAltIcon />}
+                  label={`${task.subtasks.filter(st => st.completada).length}/${task.subtasks.length}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    borderColor: task.color || '#6750A4',
+                    color: task.color || '#6750A4',
+                  }}
+                />
+              )}
             </Box>
           </Box>
         </Box>

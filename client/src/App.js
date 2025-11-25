@@ -30,6 +30,7 @@ import TaskDetailDialog from './components/TaskDetailDialog';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import UpdateNotification from './components/UpdateNotification';
 
 const API_URL = 'http://localhost:5000/api/tasks';
 
@@ -199,6 +200,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <UpdateNotification />
       <Box
         sx={{
           minHeight: '100vh',
@@ -374,6 +376,7 @@ function App() {
               onEdit={handleEditTask}
               onDelete={handleDeleteTask}
               onToggle={handleToggleTask}
+              onRefresh={fetchTasks}
             />
           )}
         </Container>

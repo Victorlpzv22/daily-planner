@@ -151,3 +151,62 @@ Los datos persisten entre actualizaciones.
 
 ### Servidor Flask Integrado
 El servidor Flask está completamente empaquetado dentro de la aplicación. No se requiere instalación de Python en el sistema del usuario.
+
+## 8. Publicación y Auto-Actualización
+
+Para que las actualizaciones automáticas funcionen, debes publicar la nueva versión en GitHub Releases.
+
+### Requisitos Previos
+1. Un token de acceso personal de GitHub (GH_TOKEN) con permisos de `repo`.
+2. Configurar la variable de entorno `GH_TOKEN` en tu sistema o terminal.
+
+### Opción A: Publicación Automática (Recomendada)
+Requiere `GH_TOKEN`.
+
+**Escenario: Tienes una máquina Linux y una Windows**
+Si construyes en máquinas separadas, el proceso es "aditivo":
+
+1. **En Linux**:
+   - Asegúrate de que `package.json` tenga la versión correcta (ej: 1.0.1).
+   - Ejecuta: `npm run dist:linux -- --publish always`
+   - Esto creará un **Draft Release** en GitHub y subirá los archivos de Linux.
+
+2. **En Windows**:
+   - Asegúrate de que `package.json` tenga **la misma versión** (1.0.1).
+   - Ejecuta: `npm run dist:win -- --publish always`
+   - Detectará el Draft Release existente y **añadirá** los archivos de Windows.
+
+3. **Publicar**:
+   - Ve a GitHub Releases, verás el borrador con todos los archivos (Linux y Windows).
+   - Dale a "Publish release".
+
+**Escenario: Una sola máquina (Cross-compile)**
+Si solo tienes Linux, puedes intentar compilar para Windows (usando Wine), pero es propenso a errores. Lo ideal es el método de arriba o usar GitHub Actions.
+
+```bash
+npm run dist:all -- --publish always
+```
+
+### Opción B: Publicación Manual (Sin Token)
+Si prefieres no usar un token o configurar variables de entorno, puedes subir los archivos manualmente:
+
+1. Genera el build normalmente:
+   ```bash
+   ./build-all.sh
+   ```
+2. Ve a GitHub > Releases > "Draft a new release".
+3. Crea un tag (ej: `v1.0.1`) que coincida con la versión de `package.json`.
+4. **IMPORTANTE**: Sube los siguientes archivos de la carpeta `client/dist/` a la release:
+   - Los ejecutables (`.AppImage`, `.exe`)
+   - **Los archivos de metadatos** (`latest-linux.yml`, `latest.yml`) -> *Estos son CRÍTICOS para que funcione el auto-update.*
+5. Publica la release.
+
+### ¿Qué son los archivos .yml?
+Son archivos de texto pequeños (`latest.yml` para Windows, `latest-linux.yml` para Linux) que contienen:
+- El número de la última versión.
+- La fecha de publicación.
+- El **checksum (sha512)** del ejecutable.
+
+Cuando la app busca actualizaciones, primero lee este archivo. Si ve una versión nueva, usa el checksum para verificar que el archivo que descarga es legítimo y no se ha corrompido. **Sin estos archivos, la app no sabrá que existe una actualización.**
+
+¡Listo! Los usuarios recibirán la notificación de actualización la próxima vez que abran la app.

@@ -34,3 +34,8 @@ def delete_task(task_id):
 @task_bp.route('/<int:task_id>/toggle', methods=['PATCH'])
 def toggle_task(task_id):
     return TaskController.toggle_task(task_id)
+
+# Alternar estado completada de una subtarea
+@task_bp.route('/<int:task_id>/subtasks/<int:subtask_id>/toggle', methods=['PATCH'])
+def toggle_subtask(task_id, subtask_id):
+    return TaskController.toggle_subtask(task_id, subtask_id)
