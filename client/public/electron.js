@@ -2,12 +2,35 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
+const { autoUpdater } = require('electron-updater');
+const { ipcMain } = require('electron');
 const net = require('net');
 const fs = require('fs');
 const os = require('os');
 
 let mainWindow;
 let flaskProcess;
+
+// Prevenir múltiples instancias de la aplicación (Issue #17)
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // Si otra instancia ya está ejecutándose, cerrar esta
+  console.log('⚠️  Ya existe una instancia de Daily Planner en ejecución. Cerrando...');
+  app.quit();
+} else {
+  // Esta es la instancia principal, manejar cuando otra intente abrirse
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.log('🔄 Se intentó abrir una segunda instancia. Enfocando la ventana existente.');
+    // Si el usuario intenta abrir otra instancia, enfocar la ventana existente
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    }
+  });
+}
 
 // Configurar logging
 const logFile = path.join(app.getPath('userData'), 'main.log');
@@ -42,6 +65,14 @@ logToFile('----------------------------------------');
 logToFile(`App starting. Platform: ${process.platform}, Arch: ${process.arch}`);
 logToFile(`User Data Path: ${app.getPath('userData')}`);
 logToFile(`Resources Path: ${process.resourcesPath}`);
+
+// Configurar autoUpdater
+autoUpdater.logger = {
+  info(message) { logToFile(`[AutoUpdater] ${message}`); },
+  warn(message) { logToFile(`[AutoUpdater WARN] ${message}`); },
+  error(message) { logToFile(`[AutoUpdater ERROR] ${message}`); }
+};
+autoUpdater.autoDownload = false; // Preguntar al usuario antes de descargar
 
 // Verificar si el puerto está disponible
 function checkPort(port) {
@@ -254,15 +285,75 @@ async function startFlaskServer() {
   }
 }
 
-app.on('ready', async () => {
-  console.log('🎬 Electron iniciado en modo:', isDev ? 'desarrollo' : 'producción');
+// Solo registrar eventos si tenemos el lock de instancia única
+if (gotTheLock) {
+  app.on('ready', async () => {
+    console.log('🎬 Electron iniciado en modo:', isDev ? 'desarrollo' : 'producción');
 
-  try {
-    await startFlaskServer();
-  } catch (err) {
-    console.error('FATAL: Error starting server:', err);
+    try {
+      await startFlaskServer();
+    } catch (err) {
+      console.error('FATAL: Error starting server:', err);
+    }
+    createWindow();
+
+    // Auto-update logic
+    if (!isDev) {
+      autoUpdater.checkForUpdates().catch(err => {
+        console.log('Auto-update check failed (this is normal if no releases exist):', err.message);
+      });
   }
-  createWindow();
+
+  // IPC Handlers for updates
+  ipcMain.on('check-for-updates', () => {
+    if (!isDev) {
+      autoUpdater.checkForUpdates().catch(err => {
+        console.log('Manual update check failed:', err.message);
+      });
+    }
+  });
+
+  ipcMain.on('download-update', () => {
+    autoUpdater.downloadUpdate();
+  });
+
+  ipcMain.on('install-update', () => {
+    autoUpdater.quitAndInstall();
+  });
+
+  // AutoUpdater events
+  autoUpdater.on('checking-for-update', () => {
+    logToFile('Checking for update...');
+    if (mainWindow) mainWindow.webContents.send('update-checking');
+  });
+
+  autoUpdater.on('update-available', (info) => {
+    logToFile('Update available: ' + info.version);
+    if (mainWindow) mainWindow.webContents.send('update-available', info);
+  });
+
+  autoUpdater.on('update-not-available', (info) => {
+    logToFile('Update not available.');
+    if (mainWindow) mainWindow.webContents.send('update-not-available', info);
+  });
+
+  autoUpdater.on('error', (err) => {
+    logToFile('Error in auto-updater: ' + err);
+    if (mainWindow) mainWindow.webContents.send('update-error', err.toString());
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    let log_message = "Download speed: " + progressObj.bytesPerSecond;
+    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+    logToFile(log_message);
+    if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    logToFile('Update downloaded');
+    if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+  });
 });
 
 app.on('window-all-closed', () => {
@@ -295,6 +386,8 @@ app.on('quit', () => {
     flaskProcess.kill('SIGTERM');
   }
 });
+
+} // Fin del bloque if (gotTheLock)
 
 // Manejo de errores no capturados
 process.on('uncaughtException', (error) => {

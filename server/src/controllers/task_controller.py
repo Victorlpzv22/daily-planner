@@ -2,7 +2,7 @@ from flask import request, jsonify
 from models.task import Task
 from database.db import db
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH, FR, SA, SU
 import uuid
 
@@ -23,7 +23,7 @@ class TaskController:
     def get_task(task_id):
         """Obtener una tarea por ID"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             return jsonify({'task': task.to_dict()}), 200
@@ -112,10 +112,20 @@ class TaskController:
                 interval = int(recurrence.get('interval', 1))
                 
                 # Días de la semana para semanal
+                # NOTA: Para tareas de tipo "semanal", NO usar weekdays del frontend
+                # Las tareas semanales siempre se repiten comenzando el lunes
                 weekdays = None
-                if recurrence.get('frequency') == 'weekly' and recurrence.get('weekdays'):
+                if recurrence.get('frequency') == 'weekly' and tipo != 'semanal' and recurrence.get('weekdays'):
                     day_map = {'MO': MO, 'TU': TU, 'WE': WE, 'TH': TH, 'FR': FR, 'SA': SA, 'SU': SU}
                     weekdays = [day_map[d] for d in recurrence['weekdays'] if d in day_map]
+                
+                # Para tareas semanales con recurrencia, forzar inicio en lunes
+                if tipo == 'semanal':
+                    # Ajustar fecha_inicio al lunes de esa semana
+                    days_since_monday = fecha_inicio_obj.weekday()
+                    fecha_inicio_obj = fecha_inicio_obj - timedelta(days=days_since_monday)
+                    # La fecha_fin es el domingo de esa semana (6 días después del lunes)
+                    fecha_fin_obj = fecha_inicio_obj + timedelta(days=6)
                 
                 # Fecha fin o conteo
                 until = None
@@ -129,6 +139,14 @@ class TaskController:
                 elif recurrence.get('endType') == 'count' and recurrence.get('count'):
                     count = int(recurrence['count'])
                 
+                # Límite de seguridad: si no hay until ni count, limitar a 1 año o 52 ocurrencias
+                if not until and not count:
+                    until = fecha_inicio_obj + timedelta(days=365)
+                
+                # Limitar count máximo para evitar overflow
+                if count and count > 365:
+                    count = 365
+                
                 # Generar fechas
                 # Nota: rrule usa datetime, no date
                 start_dt = datetime.combine(fecha_inicio_obj, datetime.min.time())
@@ -139,7 +157,10 @@ class TaskController:
                     'dtstart': start_dt,
                 }
                 
-                if weekdays:
+                # Para tareas semanales, siempre usar lunes como día de inicio
+                if tipo == 'semanal' and freq == WEEKLY:
+                    rule_kwargs['byweekday'] = MO
+                elif weekdays:
                     rule_kwargs['byweekday'] = weekdays
                 if until:
                     rule_kwargs['until'] = datetime.combine(until, datetime.max.time())
@@ -148,12 +169,20 @@ class TaskController:
                     
                 dates = list(rrule(**rule_kwargs))
                 
-                # Duración de la tarea original
-                duration = (fecha_fin_obj - fecha_inicio_obj).days
+                # Limitar número máximo de tareas generadas
+                if len(dates) > 365:
+                    dates = dates[:365]
+                
+                # Duración de la tarea original (mínimo 0 días)
+                duration = max(0, (fecha_fin_obj - fecha_inicio_obj).days)
                 
                 for dt in dates:
                     task_start = dt.date()
-                    task_end = task_start + timedelta(days=duration)
+                    # Validar que la fecha no cause overflow
+                    try:
+                        task_end = task_start + timedelta(days=duration)
+                    except OverflowError:
+                        continue  # Saltar esta fecha si causa overflow
                     
                     tasks_to_create.append({
                         'fecha_inicio': task_start,
@@ -167,6 +196,7 @@ class TaskController:
                 })
             
             created_tasks = []
+            subtasks_data = data.get('subtasks', [])
             
             for task_dates in tasks_to_create:
                 new_task = Task(
@@ -182,9 +212,26 @@ class TaskController:
                     group_id=group_id
                 )
                 db.session.add(new_task)
+                db.session.flush() # Para obtener el ID
+                
+                # Crear subtareas
+                from models.subtask import Subtask
+                for subtask_data in subtasks_data:
+                    if subtask_data.get('titulo'):
+                        new_subtask = Subtask(
+                            task_id=new_task.id,
+                            titulo=subtask_data['titulo'].strip(),
+                            completada=subtask_data.get('completada', False)
+                        )
+                        db.session.add(new_subtask)
+                
                 created_tasks.append(new_task)
             
             db.session.commit()
+            
+            # Verificar que se crearon tareas
+            if not created_tasks:
+                return jsonify({'error': 'No se pudieron crear tareas. Verifique los parámetros de recurrencia.'}), 400
             
             return jsonify({
                 'message': f'{len(created_tasks)} tarea(s) creada(s) exitosamente',
@@ -200,7 +247,7 @@ class TaskController:
     def update_task(task_id):
         """Actualizar una tarea existente"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
@@ -267,7 +314,24 @@ class TaskController:
                     return jsonify({'error': 'Formato de color inválido'}), 400
                 task.color = data['color']
             
-            task.updated_at = datetime.utcnow()
+            # Actualizar subtareas
+            if 'subtasks' in data:
+                from models.subtask import Subtask
+                
+                # Eliminar subtareas existentes
+                Subtask.query.filter_by(task_id=task.id).delete()
+                
+                # Crear nuevas subtareas
+                for subtask_data in data['subtasks']:
+                    if subtask_data.get('titulo'):
+                        new_subtask = Subtask(
+                            task_id=task.id,
+                            titulo=subtask_data['titulo'].strip(),
+                            completada=subtask_data.get('completada', False)
+                        )
+                        db.session.add(new_subtask)
+            
+            task.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             return jsonify({
@@ -283,7 +347,7 @@ class TaskController:
     def delete_task(task_id):
         """Eliminar una tarea"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
@@ -300,12 +364,12 @@ class TaskController:
     def toggle_task(task_id):
         """Alternar el estado completada de una tarea"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
             task.completada = not task.completada
-            task.updated_at = datetime.utcnow()
+            task.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             return jsonify({
@@ -316,3 +380,28 @@ class TaskController:
         except SQLAlchemyError as e:
             db.session.rollback()
             return jsonify({'error': 'Error al actualizar tarea', 'details': str(e)}), 500
+
+    @staticmethod
+    def toggle_subtask(task_id, subtask_id):
+        """Alternar el estado completada de una subtarea"""
+        try:
+            from models.subtask import Subtask
+            subtask = db.session.get(Subtask, subtask_id)
+            
+            if not subtask:
+                return jsonify({'error': 'Subtarea no encontrada'}), 404
+                
+            if subtask.task_id != task_id:
+                return jsonify({'error': 'La subtarea no pertenece a la tarea especificada'}), 400
+            
+            subtask.completada = not subtask.completada
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Estado de subtarea actualizado',
+                'subtask': subtask.to_dict()
+            }), 200
+            
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            return jsonify({'error': 'Error al actualizar subtarea', 'details': str(e)}), 500

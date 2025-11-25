@@ -18,6 +18,7 @@ import {
   Alert,
   Typography,
   Divider,
+  IconButton,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -36,9 +37,14 @@ import RepeatIcon from '@mui/icons-material/Repeat';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import PaletteIcon from '@mui/icons-material/Palette';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import SettingsIcon from '@mui/icons-material/Settings';
+import EditIcon from '@mui/icons-material/Edit';
 
-// Colores predefinidos
-const PRESET_COLORS = [
+// Colores predefinidos por defecto
+const DEFAULT_COLORS = [
   { name: 'Rojo', value: '#d32f2f' },
   { name: 'Rosa', value: '#c2185b' },
   { name: 'Púrpura', value: '#7b1fa2' },
@@ -52,6 +58,21 @@ const PRESET_COLORS = [
   { name: 'Gris', value: '#616161' },
   { name: 'Azul gris', value: '#455a64' },
 ];
+
+// Obtener colores del localStorage o usar los predeterminados
+const getStoredColors = () => {
+  try {
+    const stored = localStorage.getItem('presetColors');
+    return stored ? JSON.parse(stored) : DEFAULT_COLORS;
+  } catch {
+    return DEFAULT_COLORS;
+  }
+};
+
+// Guardar colores en localStorage
+const saveColors = (colors) => {
+  localStorage.setItem('presetColors', JSON.stringify(colors));
+};
 
 function TaskForm({ task, onSubmit, onCancel }) {
   const theme = useTheme();
@@ -75,10 +96,22 @@ function TaskForm({ task, onSubmit, onCancel }) {
     frequency: 'daily',
     interval: 1,
     weekdays: [],
+    monthdays: [], // Días específicos del mes (1-31)
+    monthWeek: null, // Primera, segunda, tercera, cuarta, última semana
+    monthWeekday: null, // Día de la semana para repetición mensual
     endType: 'date',
     endDate: addMonths(new Date(), 1),
     count: 10
   });
+
+  const [subtasks, setSubtasks] = useState([]);
+
+  // Estado para colores predefinidos personalizables
+  const [presetColors, setPresetColors] = useState(getStoredColors());
+  const [editingColors, setEditingColors] = useState(false);
+  const [editingColorIndex, setEditingColorIndex] = useState(null);
+  const [tempColorName, setTempColorName] = useState('');
+  const [tempColorValue, setTempColorValue] = useState('#000000');
 
   useEffect(() => {
     if (task) {
@@ -92,6 +125,10 @@ function TaskForm({ task, onSubmit, onCancel }) {
         tipo: task.tipo || 'diaria',
         color: task.color || '#1976d2',
       });
+
+      if (task.subtasks) {
+        setSubtasks(task.subtasks);
+      }
     }
   }, [task]);
 
@@ -116,6 +153,10 @@ function TaskForm({ task, onSubmit, onCancel }) {
         fecha_inicio: weekStart,
         fecha_fin: weekEnd,
       });
+      // Si la frecuencia es diaria, cambiarla a semanal automáticamente
+      if (recurrence.frequency === 'daily') {
+        setRecurrence({ ...recurrence, frequency: 'weekly', weekdays: [] });
+      }
     } else {
       setFormData({ ...formData, tipo: newTipo, fecha_fin: newFechaFin });
     }
@@ -164,10 +205,13 @@ function TaskForm({ task, onSubmit, onCancel }) {
         frequency: recurrence.frequency,
         interval: recurrence.interval,
         weekdays: recurrence.weekdays,
-        endType: recurrence.endType,
+        monthdays: recurrence.monthdays,
+        monthWeek: recurrence.monthWeek,
+        monthWeekday: recurrence.monthWeekday,
         endDate: recurrence.endDate ? format(recurrence.endDate, 'yyyy-MM-dd') : null,
         count: recurrence.count
-      } : null
+      } : null,
+      subtasks: subtasks.filter(st => st.titulo.trim() !== '')
     };
 
     onSubmit(dataToSubmit);
@@ -200,6 +244,50 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
   const handleColorSelect = (color) => {
     setFormData({ ...formData, color });
+  };
+
+  const handleAddSubtask = () => {
+    setSubtasks([...subtasks, { titulo: '', completada: false }]);
+  };
+
+  const handleSubtaskChange = (index, value) => {
+    const newSubtasks = [...subtasks];
+    newSubtasks[index].titulo = value;
+    setSubtasks(newSubtasks);
+  };
+
+  const handleRemoveSubtask = (index) => {
+    const newSubtasks = subtasks.filter((_, i) => i !== index);
+    setSubtasks(newSubtasks);
+  };
+
+  // Funciones para gestionar colores predefinidos
+  const handleStartEditColor = (index) => {
+    setEditingColorIndex(index);
+    setTempColorName(presetColors[index].name);
+    setTempColorValue(presetColors[index].value);
+  };
+
+  const handleSaveEditColor = () => {
+    if (editingColorIndex !== null && tempColorName.trim()) {
+      const newColors = [...presetColors];
+      newColors[editingColorIndex] = { name: tempColorName.trim(), value: tempColorValue };
+      setPresetColors(newColors);
+      saveColors(newColors);
+      setEditingColorIndex(null);
+    }
+  };
+
+  const handleCancelEditColor = () => {
+    setEditingColorIndex(null);
+    setTempColorName('');
+    setTempColorValue('#000000');
+  };
+
+  const handleResetColors = () => {
+    setPresetColors(DEFAULT_COLORS);
+    saveColors(DEFAULT_COLORS);
+    setEditingColors(false);
   };
 
   return (
@@ -278,7 +366,8 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
           {formData.tipo === 'semanal' && (
             <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
-              La tarea abarcará desde el lunes hasta el domingo de la semana seleccionada
+              La tarea abarcará desde el lunes hasta el domingo de la semana seleccionada.
+              {recurrence.enabled && ' Las repeticiones siempre comenzarán en lunes.'}
             </Alert>
           )}
 
@@ -372,7 +461,10 @@ function TaskForm({ task, onSubmit, onCancel }) {
                         label="Frecuencia"
                         onChange={(e) => setRecurrence({ ...recurrence, frequency: e.target.value })}
                       >
-                        <MenuItem value="daily">Diaria</MenuItem>
+                        {/* Para tareas semanales, no permitir frecuencia diaria */}
+                        {formData.tipo !== 'semanal' && (
+                          <MenuItem value="daily">Diaria</MenuItem>
+                        )}
                         <MenuItem value="weekly">Semanal</MenuItem>
                         <MenuItem value="monthly">Mensual</MenuItem>
                         <MenuItem value="yearly">Anual</MenuItem>
@@ -396,7 +488,7 @@ function TaskForm({ task, onSubmit, onCancel }) {
                     />
                   </Box>
 
-                  {recurrence.frequency === 'weekly' && (
+                  {recurrence.frequency === 'weekly' && formData.tipo !== 'semanal' && (
                     <Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
                         Días de la semana
@@ -415,6 +507,138 @@ function TaskForm({ task, onSubmit, onCancel }) {
                         ))}
                       </ToggleButtonGroup>
                     </Box>
+                  )}
+
+                  {recurrence.frequency === 'weekly' && formData.tipo === 'semanal' && (
+                    <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                      Las tareas semanales se repetirán siempre comenzando el lunes de cada semana.
+                    </Alert>
+                  )}
+
+                  {recurrence.frequency === 'monthly' && formData.tipo !== 'semanal' && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        Repetir en...
+                      </Typography>
+                      
+                      {/* Opción 1: Días específicos del mes */}
+                      <Box sx={{ mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <input
+                            type="radio"
+                            checked={recurrence.monthWeek === null}
+                            onChange={() => setRecurrence({ ...recurrence, monthWeek: null, monthWeekday: null })}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <Typography variant="body2" sx={{ cursor: 'pointer' }}
+                            onClick={() => setRecurrence({ ...recurrence, monthWeek: null, monthWeekday: null })}>
+                            Días específicos del mes
+                          </Typography>
+                        </Box>
+                        
+                        {recurrence.monthWeek === null && (
+                          <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(7, 1fr)',
+                            gap: 0.5,
+                            ml: 3,
+                          }}>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                              <Box
+                                key={day}
+                                onClick={() => {
+                                  const newDays = recurrence.monthdays.includes(day)
+                                    ? recurrence.monthdays.filter(d => d !== day)
+                                    : [...recurrence.monthdays, day].sort((a, b) => a - b);
+                                  setRecurrence({ ...recurrence, monthdays: newDays });
+                                }}
+                                sx={{
+                                  width: 32,
+                                  height: 32,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  borderRadius: 1,
+                                  cursor: 'pointer',
+                                  fontSize: '0.75rem',
+                                  fontWeight: recurrence.monthdays.includes(day) ? 600 : 400,
+                                  bgcolor: recurrence.monthdays.includes(day) ? 'primary.main' : 'action.hover',
+                                  color: recurrence.monthdays.includes(day) ? 'primary.contrastText' : 'text.primary',
+                                  '&:hover': {
+                                    bgcolor: recurrence.monthdays.includes(day) ? 'primary.dark' : 'action.selected',
+                                  },
+                                }}
+                              >
+                                {day}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+
+                      {/* Opción 2: Semana específica del mes */}
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <input
+                            type="radio"
+                            checked={recurrence.monthWeek !== null}
+                            onChange={() => setRecurrence({ ...recurrence, monthWeek: 'first', monthWeekday: 'MO', monthdays: [] })}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <Typography variant="body2" sx={{ cursor: 'pointer' }}
+                            onClick={() => setRecurrence({ ...recurrence, monthWeek: 'first', monthWeekday: 'MO', monthdays: [] })}>
+                            Día de la semana específico
+                          </Typography>
+                        </Box>
+                        
+                        {recurrence.monthWeek !== null && (
+                          <Box sx={{ display: 'flex', gap: 1, ml: 3 }}>
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                              <InputLabel>Semana</InputLabel>
+                              <Select
+                                value={recurrence.monthWeek || 'first'}
+                                label="Semana"
+                                onChange={(e) => setRecurrence({ ...recurrence, monthWeek: e.target.value })}
+                              >
+                                <MenuItem value="first">Primera</MenuItem>
+                                <MenuItem value="second">Segunda</MenuItem>
+                                <MenuItem value="third">Tercera</MenuItem>
+                                <MenuItem value="fourth">Cuarta</MenuItem>
+                                <MenuItem value="last">Última</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 120 }}>
+                              <InputLabel>Día</InputLabel>
+                              <Select
+                                value={recurrence.monthWeekday || 'MO'}
+                                label="Día"
+                                onChange={(e) => setRecurrence({ ...recurrence, monthWeekday: e.target.value })}
+                              >
+                                <MenuItem value="MO">Lunes</MenuItem>
+                                <MenuItem value="TU">Martes</MenuItem>
+                                <MenuItem value="WE">Miércoles</MenuItem>
+                                <MenuItem value="TH">Jueves</MenuItem>
+                                <MenuItem value="FR">Viernes</MenuItem>
+                                <MenuItem value="SA">Sábado</MenuItem>
+                                <MenuItem value="SU">Domingo</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {recurrence.frequency === 'monthly' && formData.tipo === 'semanal' && (
+                    <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                      Las tareas semanales se repetirán el primer lunes de cada mes.
+                    </Alert>
+                  )}
+
+                  {recurrence.frequency === 'yearly' && formData.tipo === 'semanal' && (
+                    <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+                      Las tareas semanales se repetirán en la misma semana cada año, comenzando el lunes.
+                    </Alert>
                   )}
 
                   <Divider sx={{ borderStyle: 'dashed' }} />
@@ -483,6 +707,59 @@ function TaskForm({ task, onSubmit, onCancel }) {
 
           <Divider sx={{ my: 1 }} />
 
+          {/* Subtasks Section */}
+          <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ListAltIcon color="action" />
+                <Typography variant="body1">Subtareas</Typography>
+              </Box>
+              <Button
+                startIcon={<AddIcon />}
+                size="small"
+                onClick={handleAddSubtask}
+              >
+                Agregar
+              </Button>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {subtasks.map((subtask, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    placeholder="Nueva subtarea"
+                    value={subtask.titulo}
+                    onChange={(e) => handleSubtaskChange(index, e.target.value)}
+                    size="small"
+                    fullWidth
+                    InputProps={{
+                      startAdornment: (
+                        <CheckCircleIcon
+                          color="disabled"
+                          sx={{ mr: 1, fontSize: 20 }}
+                        />
+                      )
+                    }}
+                  />
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveSubtask(index)}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))}
+              {subtasks.length === 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
+                  No hay subtareas. Agrega una para crear una lista de verificación.
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          <Divider sx={{ my: 1 }} />
+
           {/* Selector de Color Mejorado */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -490,6 +767,15 @@ function TaskForm({ task, onSubmit, onCancel }) {
               <Typography variant="body2" fontWeight={500} color="text.secondary">
                 Color de la tarea
               </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              <IconButton 
+                size="small" 
+                onClick={() => setEditingColors(!editingColors)}
+                color={editingColors ? 'primary' : 'default'}
+                title="Personalizar colores"
+              >
+                <SettingsIcon fontSize="small" />
+              </IconButton>
             </Box>
 
             {/* Vista previa del color seleccionado */}
@@ -518,53 +804,129 @@ function TaskForm({ task, onSubmit, onCancel }) {
             </Box>
 
             {/* Paleta de colores predefinidos */}
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Colores predefinidos
-            </Typography>
-            <Box sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
-              gap: 1,
-              mb: 2,
-            }}>
-              {PRESET_COLORS.map((colorOption) => (
-                <Box
-                  key={colorOption.value}
-                  onClick={() => handleColorSelect(colorOption.value)}
-                  sx={{
-                    width: '100%',
-                    paddingTop: '100%',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    borderRadius: 1.5,
-                    bgcolor: colorOption.value,
-                    border: '3px solid',
-                    borderColor: formData.color === colorOption.value
-                      ? 'primary.main'
-                      : 'transparent',
-                    transition: 'all 0.2s',
-                    boxShadow: formData.color === colorOption.value ? 3 : 1,
-                    '&:hover': {
-                      transform: 'scale(1.15)',
-                      boxShadow: 3,
-                      zIndex: 10,
-                    },
-                    '&::after': formData.color === colorOption.value ? {
-                      content: '"✓"',
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      color: '#fff',
-                      fontSize: '1.5rem',
-                      fontWeight: 'bold',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.3)',
-                    } : {},
-                  }}
-                  title={colorOption.name}
-                />
-              ))}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Colores predefinidos
+              </Typography>
+              {editingColors && (
+                <Button 
+                  size="small" 
+                  onClick={handleResetColors}
+                  sx={{ fontSize: '0.7rem' }}
+                >
+                  Restaurar
+                </Button>
+              )}
             </Box>
+            
+            {/* Modo edición de colores */}
+            {editingColors ? (
+              <Box sx={{ mb: 2 }}>
+                {presetColors.map((colorOption, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      mb: 1,
+                      p: 1,
+                      borderRadius: 1,
+                      bgcolor: 'action.hover',
+                    }}
+                  >
+                    {editingColorIndex === index ? (
+                      <>
+                        <input
+                          type="color"
+                          value={tempColorValue}
+                          onChange={(e) => setTempColorValue(e.target.value)}
+                          style={{ width: 32, height: 32, border: 'none', cursor: 'pointer' }}
+                        />
+                        <TextField
+                          value={tempColorName}
+                          onChange={(e) => setTempColorName(e.target.value)}
+                          size="small"
+                          placeholder="Nombre del color"
+                          sx={{ flexGrow: 1 }}
+                        />
+                        <Button size="small" onClick={handleSaveEditColor} color="primary">
+                          Guardar
+                        </Button>
+                        <Button size="small" onClick={handleCancelEditColor}>
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1,
+                            bgcolor: colorOption.value,
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                          {colorOption.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {colorOption.value}
+                        </Typography>
+                        <IconButton size="small" onClick={() => handleStartEditColor(index)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(6, 1fr)',
+                gap: 1,
+                mb: 2,
+              }}>
+                {presetColors.map((colorOption) => (
+                  <Box
+                    key={colorOption.value}
+                    onClick={() => handleColorSelect(colorOption.value)}
+                    sx={{
+                      width: '100%',
+                      paddingTop: '100%',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      borderRadius: 1.5,
+                      bgcolor: colorOption.value,
+                      border: '3px solid',
+                      borderColor: formData.color === colorOption.value
+                        ? 'primary.main'
+                        : 'transparent',
+                      transition: 'all 0.2s',
+                      boxShadow: formData.color === colorOption.value ? 3 : 1,
+                      '&:hover': {
+                        transform: 'scale(1.15)',
+                        boxShadow: 3,
+                        zIndex: 10,
+                      },
+                      '&::after': formData.color === colorOption.value ? {
+                        content: '"✓"',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        color: '#fff',
+                        fontSize: '1.5rem',
+                        fontWeight: 'bold',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                      } : {},
+                    }}
+                    title={colorOption.name}
+                  />
+                ))}
+              </Box>
+            )}
 
             {/* Input de color personalizado */}
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>

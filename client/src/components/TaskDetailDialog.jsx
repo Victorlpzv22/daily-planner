@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,6 +12,8 @@ import {
   Divider,
   useMediaQuery,
   useTheme,
+  Checkbox,
+  LinearProgress,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
@@ -23,10 +25,32 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import EventIcon from '@mui/icons-material/Event';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
-function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
+function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle, onRefresh }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const [localSubtasks, setLocalSubtasks] = useState(task?.subtasks || []);
+
+  const handleSubtaskToggle = async (subtaskId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/tasks/${task.id}/subtasks/${subtaskId}/toggle`, {
+        method: 'PATCH',
+      });
+
+      if (response.ok) {
+        setLocalSubtasks(localSubtasks.map(st =>
+          st.id === subtaskId ? { ...st, completada: !st.completada } : st
+        ));
+        // Trigger parent to refresh tasks without toggling the parent task
+        if (onRefresh) {
+          onRefresh();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling subtask:', error);
+    }
+  };
 
   if (!task) return null;
 
@@ -47,11 +71,11 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
   const getDateRangeText = () => {
     const inicio = formatDate(task.fecha_inicio);
     const fin = formatDate(task.fecha_fin);
-    
+
     if (task.fecha_inicio === task.fecha_fin || task.tipo === 'diaria') {
       return inicio;
     }
-    
+
     return `${inicio} - ${fin}`;
   };
 
@@ -84,27 +108,27 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
   };
 
   return (
-    <Dialog 
-      open={true} 
+    <Dialog
+      open={true}
       onClose={onClose}
       fullScreen={fullScreen}
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <DialogTitle sx={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         pr: 1,
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box 
-            sx={{ 
-              width: 8, 
-              height: 40, 
-              bgcolor: task.color || '#1976d2', 
+          <Box
+            sx={{
+              width: 8,
+              height: 40,
+              bgcolor: task.color || '#1976d2',
               borderRadius: 1,
-            }} 
+            }}
           />
           <Typography variant="h6" component="span">
             Detalles de la tarea
@@ -118,9 +142,9 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
       <DialogContent dividers>
         {/* Título */}
         <Box sx={{ mb: 3 }}>
-          <Typography 
-            variant="h5" 
-            sx={{ 
+          <Typography
+            variant="h5"
+            sx={{
               fontWeight: 600,
               textDecoration: task.completada ? 'line-through' : 'none',
               color: task.completada ? 'text.secondary' : 'text.primary',
@@ -136,6 +160,57 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
             <Typography variant="body1" color="text.secondary">
               {task.descripcion}
             </Typography>
+          </Box>
+        )}
+
+        {/* Subtareas */}
+        {localSubtasks.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <ListAltIcon color="action" fontSize="small" />
+              <Typography variant="subtitle2" color="text.secondary">
+                Subtareas ({localSubtasks.filter(st => st.completada).length}/{localSubtasks.length})
+              </Typography>
+            </Box>
+
+            <LinearProgress
+              variant="determinate"
+              value={(localSubtasks.filter(st => st.completada).length / localSubtasks.length) * 100}
+              sx={{ mb: 2, borderRadius: 1, height: 6, bgcolor: 'action.hover' }}
+            />
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {localSubtasks.map((subtask) => (
+                <Box
+                  key={subtask.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    p: 0.5,
+                    borderRadius: 1,
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                >
+                  <Checkbox
+                    checked={subtask.completada}
+                    onChange={() => handleSubtaskToggle(subtask.id)}
+                    size="small"
+                    sx={{ p: 0.5 }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      textDecoration: subtask.completada ? 'line-through' : 'none',
+                      color: subtask.completada ? 'text.secondary' : 'text.primary',
+                      flex: 1
+                    }}
+                  >
+                    {subtask.titulo}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
         )}
 
@@ -214,8 +289,8 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
               Color asignado
             </Typography>
-            <Box 
-              sx={{ 
+            <Box
+              sx={{
                 width: '100%',
                 height: 40,
                 bgcolor: task.color || '#1976d2',
@@ -225,10 +300,10 @@ function TaskDetailDialog({ task, onClose, onEdit, onDelete, onToggle }) {
                 justifyContent: 'center',
               }}
             >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  color: '#fff', 
+              <Typography
+                variant="body2"
+                sx={{
+                  color: '#fff',
                   fontWeight: 500,
                   textShadow: '0 1px 2px rgba(0,0,0,0.3)',
                 }}
