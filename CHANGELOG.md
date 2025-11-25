@@ -11,30 +11,55 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - ✅ **Subtareas**: Soporte completo para subtareas en cada tarea
   - Crear, editar y eliminar subtareas
   - Toggle de completado individual
-  - Visualización integrada en la vista de tareas
+  - Visualización de progreso en TaskItem y TaskDetailDialog
+- ✅ **Instancia única** (Issue #17): La aplicación ahora solo permite una instancia
+  - Al abrir una segunda instancia, se enfoca la ventana existente
+  - Implementado con `app.requestSingleInstanceLock()`
+- ✅ **Selectores de recurrencia mejorados** (Issue #6):
+  - Nuevas opciones de repetición mensual: días específicos del mes o día de la semana
+  - Soporte para `monthdays`, `monthWeek` y `monthWeekday`
+  - Tareas semanales solo permiten frecuencia semanal/mensual/anual (no diaria)
+  - Tareas semanales comienzan en lunes automáticamente
+  - Mensajes informativos según tipo de tarea y frecuencia
+- ✅ **Colores predefinidos personalizables** (Issue #14):
+  - Los colores de la paleta ahora se pueden editar
+  - Persistencia en localStorage
+  - Opción para restaurar colores por defecto
+- ✅ **Actualizaciones automáticas**:
+  - Integración de `electron-updater` para auto-actualizaciones
+  - Componente `UpdateNotification` para mostrar progreso de descarga
+  - Configuración de publicación en GitHub Releases
+  - Manejo de errores cuando no existen releases (404)
 - ✅ **Suite de Tests Ampliada**: 115 tests automatizados
   - Tests de modelos (Task, Subtask, relaciones)
   - Tests de rutas API (CRUD completo)
   - Tests de tareas periódicas (diarias, semanales, mensuales)
   - Tests de validación de datos de entrada
   - Tests de subtareas API
-- ✅ Nuevo archivo `test_validation.py` con 41 tests de validación
+- ✅ **Scripts de build mejorados**:
+  - Limpieza automática de artefactos anteriores
+  - Verificación de ejecutables generados
 
 ### Corregido
-- 🐛 **Bug de recurrencia**: Error IndexError cuando la fecha fin de recurrencia era anterior a la fecha de inicio
+- 🐛 **OverflowError en recurrencia**: Límite de 365 tareas máximo por recurrencia
+- 🐛 **Bug de recurrencia**: Error IndexError cuando la fecha fin era anterior a la fecha de inicio
   - Ahora devuelve error 400 con mensaje explicativo
 - 🐛 **APIs deprecadas de SQLAlchemy**: Reemplazado `Query.get()` por `db.session.get()`
 - 🐛 **datetime.utcnow() deprecado**: Reemplazado por `datetime.now(timezone.utc)`
 - 🐛 Reducción de warnings de deprecación de 1137 a 77
+- 🐛 Validación de fechas para evitar overflow
 
 ### Cambiado
 - 📝 Tests actualizados para verificar el comportamiento correcto de recurrencia
 - 📝 Modelos Task y Subtask usan función helper `utc_now()` para timestamps
+- 📝 Documentación actualizada con sección de publicación y auto-actualización
 
 ### Técnico
 - Backend: Flask 3.0.0, SQLAlchemy 2.0.44 (sin warnings de deprecación)
+- Cliente: Electron 27.1.0 con electron-updater para actualizaciones
 - Testing: pytest con 115 tests pasando
 - Cobertura de tests mejorada para subtareas y validaciones
+- Nueva migración `bc47800e64b9` para tabla subtasks
 
 ---
 
