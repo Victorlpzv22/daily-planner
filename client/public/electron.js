@@ -2,11 +2,18 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const isDev = require('electron-is-dev');
-const { autoUpdater } = require('electron-updater');
 const { ipcMain } = require('electron');
 const net = require('net');
 const fs = require('fs');
 const os = require('os');
+
+// Importar autoUpdater de forma segura (puede fallar en algunos entornos)
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch (err) {
+  console.warn('electron-updater no disponible:', err.message);
+}
 
 let mainWindow;
 let flaskProcess;
@@ -66,13 +73,17 @@ logToFile(`App starting. Platform: ${process.platform}, Arch: ${process.arch}`);
 logToFile(`User Data Path: ${app.getPath('userData')}`);
 logToFile(`Resources Path: ${process.resourcesPath}`);
 
-// Configurar autoUpdater
-autoUpdater.logger = {
-  info(message) { logToFile(`[AutoUpdater] ${message}`); },
-  warn(message) { logToFile(`[AutoUpdater WARN] ${message}`); },
-  error(message) { logToFile(`[AutoUpdater ERROR] ${message}`); }
-};
-autoUpdater.autoDownload = false; // Preguntar al usuario antes de descargar
+// Configurar autoUpdater (solo si está disponible)
+if (autoUpdater) {
+  autoUpdater.logger = {
+    info(message) { logToFile(`[AutoUpdater] ${message}`); },
+    warn(message) { logToFile(`[AutoUpdater WARN] ${message}`); },
+    error(message) { logToFile(`[AutoUpdater ERROR] ${message}`); }
+  };
+  autoUpdater.autoDownload = false; // Preguntar al usuario antes de descargar
+} else {
+  logToFile('[AutoUpdater] No disponible - actualizaciones automáticas deshabilitadas');
+}
 
 // Verificar si el puerto está disponible
 function checkPort(port) {
@@ -298,7 +309,7 @@ if (gotTheLock) {
     createWindow();
 
     // Auto-update logic
-    if (!isDev) {
+    if (!isDev && autoUpdater) {
       autoUpdater.checkForUpdates().catch(err => {
         console.log('Auto-update check failed (this is normal if no releases exist):', err.message);
       });
@@ -306,7 +317,7 @@ if (gotTheLock) {
 
   // IPC Handlers for updates
   ipcMain.on('check-for-updates', () => {
-    if (!isDev) {
+    if (!isDev && autoUpdater) {
       autoUpdater.checkForUpdates().catch(err => {
         console.log('Manual update check failed:', err.message);
       });
@@ -314,46 +325,48 @@ if (gotTheLock) {
   });
 
   ipcMain.on('download-update', () => {
-    autoUpdater.downloadUpdate();
+    if (autoUpdater) autoUpdater.downloadUpdate();
   });
 
   ipcMain.on('install-update', () => {
-    autoUpdater.quitAndInstall();
+    if (autoUpdater) autoUpdater.quitAndInstall();
   });
 
-  // AutoUpdater events
-  autoUpdater.on('checking-for-update', () => {
-    logToFile('Checking for update...');
-    if (mainWindow) mainWindow.webContents.send('update-checking');
-  });
+  // AutoUpdater events (solo si está disponible)
+  if (autoUpdater) {
+    autoUpdater.on('checking-for-update', () => {
+      logToFile('Checking for update...');
+      if (mainWindow) mainWindow.webContents.send('update-checking');
+    });
 
-  autoUpdater.on('update-available', (info) => {
-    logToFile('Update available: ' + info.version);
-    if (mainWindow) mainWindow.webContents.send('update-available', info);
-  });
+    autoUpdater.on('update-available', (info) => {
+      logToFile('Update available: ' + info.version);
+      if (mainWindow) mainWindow.webContents.send('update-available', info);
+    });
 
-  autoUpdater.on('update-not-available', (info) => {
-    logToFile('Update not available.');
-    if (mainWindow) mainWindow.webContents.send('update-not-available', info);
-  });
+    autoUpdater.on('update-not-available', (info) => {
+      logToFile('Update not available.');
+      if (mainWindow) mainWindow.webContents.send('update-not-available', info);
+    });
 
-  autoUpdater.on('error', (err) => {
-    logToFile('Error in auto-updater: ' + err);
-    if (mainWindow) mainWindow.webContents.send('update-error', err.toString());
-  });
+    autoUpdater.on('error', (err) => {
+      logToFile('Error in auto-updater: ' + err);
+      if (mainWindow) mainWindow.webContents.send('update-error', err.toString());
+    });
 
-  autoUpdater.on('download-progress', (progressObj) => {
-    let log_message = "Download speed: " + progressObj.bytesPerSecond;
-    log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
-    log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
-    logToFile(log_message);
-    if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
-  });
+    autoUpdater.on('download-progress', (progressObj) => {
+      let log_message = "Download speed: " + progressObj.bytesPerSecond;
+      log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+      log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+      logToFile(log_message);
+      if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
+    });
 
-  autoUpdater.on('update-downloaded', (info) => {
-    logToFile('Update downloaded');
-    if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
-  });
+    autoUpdater.on('update-downloaded', (info) => {
+      logToFile('Update downloaded');
+      if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
