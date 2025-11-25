@@ -1,5 +1,11 @@
 from database.db import db
-from datetime import datetime
+from datetime import datetime, timezone
+
+
+def utc_now():
+    """Función helper para obtener datetime UTC actual sin warnings de deprecación"""
+    return datetime.now(timezone.utc)
+
 
 class Task(db.Model):
     __tablename__ = 'tasks'
@@ -15,8 +21,8 @@ class Task(db.Model):
     tipo = db.Column(db.String(15), default='diaria')
     color = db.Column(db.String(7), default='#1976d2')
     group_id = db.Column(db.String(36), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     subtasks = db.relationship('Subtask', backref='task', lazy=True, cascade="all, delete-orphan")
     

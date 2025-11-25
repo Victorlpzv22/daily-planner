@@ -2,7 +2,7 @@ from flask import request, jsonify
 from models.task import Task
 from database.db import db
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH, FR, SA, SU
 import uuid
 
@@ -23,7 +23,7 @@ class TaskController:
     def get_task(task_id):
         """Obtener una tarea por ID"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             return jsonify({'task': task.to_dict()}), 200
@@ -229,6 +229,10 @@ class TaskController:
             
             db.session.commit()
             
+            # Verificar que se crearon tareas
+            if not created_tasks:
+                return jsonify({'error': 'No se pudieron crear tareas. Verifique los parámetros de recurrencia.'}), 400
+            
             return jsonify({
                 'message': f'{len(created_tasks)} tarea(s) creada(s) exitosamente',
                 'task': created_tasks[0].to_dict(),
@@ -243,7 +247,7 @@ class TaskController:
     def update_task(task_id):
         """Actualizar una tarea existente"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
@@ -327,7 +331,7 @@ class TaskController:
                         )
                         db.session.add(new_subtask)
             
-            task.updated_at = datetime.utcnow()
+            task.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             return jsonify({
@@ -343,7 +347,7 @@ class TaskController:
     def delete_task(task_id):
         """Eliminar una tarea"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
@@ -360,12 +364,12 @@ class TaskController:
     def toggle_task(task_id):
         """Alternar el estado completada de una tarea"""
         try:
-            task = Task.query.get(task_id)
+            task = db.session.get(Task, task_id)
             if not task:
                 return jsonify({'error': 'Tarea no encontrada'}), 404
             
             task.completada = not task.completada
-            task.updated_at = datetime.utcnow()
+            task.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             return jsonify({
@@ -382,7 +386,7 @@ class TaskController:
         """Alternar el estado completada de una subtarea"""
         try:
             from models.subtask import Subtask
-            subtask = Subtask.query.get(subtask_id)
+            subtask = db.session.get(Subtask, subtask_id)
             
             if not subtask:
                 return jsonify({'error': 'Subtarea no encontrada'}), 404
